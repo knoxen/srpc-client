@@ -83,7 +83,7 @@ defmodule SrpcClient.Connection do
 
     case SrpcAction.close(conn_info, data) do
       {:ok, encrypted_response} ->
-        case SrpcLib.decrypt(:origin_server, conn_info, encrypted_response) do
+        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
           {:ok, close_response} ->
             case SrpcMsg.unwrap(conn_info, nonce, close_response) do
               {:ok, conn_info, _data} -> {:reply, :ok, conn_info}

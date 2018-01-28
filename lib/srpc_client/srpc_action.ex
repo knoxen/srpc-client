@@ -37,7 +37,7 @@ defmodule SrpcClient.Action do
   end
 
   defp packet(action, conn_info, data) do
-    case SrpcLib.encrypt(:origin_client, conn_info, data) do
+    case SrpcLib.encrypt(:origin_requester, conn_info, data) do
       {:ok, encrypted} ->
         conn_id = conn_info[:conn_id]
         id_size = :erlang.byte_size(conn_id)

@@ -56,7 +56,7 @@ defmodule SrpcClient.LibKey do
       {:ok, encrypted_response} ->
         delta = :erlang.system_time(:seconds) - start_time
 
-        case SrpcLib.decrypt(:origin_server, conn_info, encrypted_response) do
+        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
           {:ok, confirm_response} ->
             case SrpcLib.process_lib_key_confirm_response(conn_info, confirm_response) do
               {:ok, confirm_data} ->
