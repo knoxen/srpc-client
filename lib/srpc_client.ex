@@ -3,6 +3,9 @@ defmodule SrpcClient do
   Documentation for SrpcClient.
   """
 
+  alias SrpcClient.ConnectionServer
+  alias SrpcClient.ConnectionsSupervisor, as: Connections
+
   use Application
 
   require Logger
@@ -13,8 +16,8 @@ defmodule SrpcClient do
     server_params = Application.get_env(:srpc_client, :server)
 
     children = [
-      {SrpcClient.ConnectionServer, server_params},
-      Supervisor.child_spec({SrpcClient.ConnectionsSupervisor, []}, type: :supervisor)
+      {ConnectionServer, server_params},
+      Supervisor.child_spec({Connections, []}, type: :supervisor)
     ]
 
     opts = [
@@ -28,17 +31,22 @@ defmodule SrpcClient do
   def connect(:lib), do: connection(:lib)
   def connect(:user, id, password), do: connection({:user, id, password})
 
-  def get(conn, path), do: conn |> GenServer.call({:get, path})
-
   def debug(conn, path), do: conn |> GenServer.call({:debug, path})
 
+  def get(conn, path), do: conn |> GenServer.call({:get, path})
+
+  def close(conn) do
+    conn |> GenServer.call(:close)
+    Connections |> Supervisor.terminate_child(conn)
+  end
+
   defp connection(term) do
-    case GenServer.call(SrpcClient.ConnectionServer, term) do
+    case GenServer.call(ConnectionServer, term) do
       {:ok, connection} ->
         connection
 
       {:error, reason} ->
-        Logger.error("Failed creating lib connection")
+        Logger.error("Failed creating lib connection: #{inspect(reason)}")
         nil
     end
   end

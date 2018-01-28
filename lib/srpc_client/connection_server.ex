@@ -44,13 +44,13 @@ defmodule SrpcClient.ConnectionServer do
   ##  Create lib connection
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:lib, _from, state) do
-    {:reply, state |> connect |> connection,
+    {:reply, state |> conn_info(:lib) |> LibKey.agreement() |> connection,
      state |> Keyword.replace!(:lib_conn_num, state[:lib_conn_num] + 1)}
   end
 
   def handle_call({:user, id, password}, _from, state) do
-    {:reply, state |> connect(id, password) |> connection,
-     state |> Keyword.replace!(:user_conn_num, state[:lib_conn_num] + 1)}
+    {:reply, state |> conn_info(:user) |> UserKey.agreement(id, password) |> connection,
+     state |> Keyword.replace!(:user_conn_num, state[:user_conn_num] + 1)}
   end
 
   ## ===============================================================================================
@@ -60,39 +60,14 @@ defmodule SrpcClient.ConnectionServer do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp connect(state) do
-    conn_num = state[:lib_conn_num]
-    name = String.to_atom("LibConnection_#{conn_num}")
-
-    conn_state =
-      state
-      |> Keyword.take([:host, :port])
-      |> Keyword.put(:name, name)
-      |> LibKey.agreement()
-
-    {:lib, conn_state}
+  defp conn_info(state, type) do
+    %{type: type, name: conn_name(state, type), url: "http://#{state[:host]}:#{state[:port]}/"}
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp connect(state, id, password) do
-    conn_num = state[:user_conn_num]
-    name = String.to_atom("UserConnection_#{conn_num}")
-
-    conn_state =
-      state
-      |> Keyword.take([:host, :port])
-      |> Keyword.put(:name, name)
-      |> UserKey.agreement(id, password)
-
-    {:user, conn_state}
-  end
-
-  ## -----------------------------------------------------------------------------------------------
-  ## -----------------------------------------------------------------------------------------------
-  defp conn_state(state, name) do
-    state |> Keyword.take([:host, :port]) |> Keyword.put(:name, name)
-  end
+  defp conn_name(state, :lib), do: String.to_atom("LibConnection_#{state[:lib_conn_num]}")
+  defp conn_name(state, :user), do: String.to_atom("UserConnection_#{state[:user_conn_num]}")
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
