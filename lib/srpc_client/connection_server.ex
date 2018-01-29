@@ -61,7 +61,7 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp conn_info(state, type) do
-    %{type: type, name: conn_name(state, type), url: "http://#{state[:host]}:#{state[:port]}/"}
+    %{type: type, name: conn_name(state, type), url: "http://#{state[:host]}:#{state[:port]}"}
   end
 
   ## -----------------------------------------------------------------------------------------------

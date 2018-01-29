@@ -6,36 +6,28 @@ defmodule SrpcClient.Msg do
 
   @version 1
   @time_bits 32
-  @nonce_bytes 4
-
-  @response_age_tolerance 30
+  @nonce_size 10
 
   def wrap(conn_info) do
     wrap(conn_info, <<>>)
   end
 
   def wrap(conn_info, data) do
-    their_time = :erlang.system_time(:second) + conn_info[:time_offset]
-    nonce = :crypto.strong_rand_bytes(@nonce_bytes)
-    {nonce, <<@version, their_time::size(@time_bits), @nonce_bytes, nonce::binary, data::binary>>}
-  end
+    time = :erlang.system_time(:second) + conn_info[:time_offset]
+    nonce = :crypto.strong_rand_bytes(@nonce_size)
 
-  def unwrap(conn_info, nonce, packet, check_age \\ true)
+    {nonce,
+     <<@version, time::size(@time_bits), @nonce_size,
+       nonce::binary-size(@nonce_size), data::binary>>}
+  end
 
   def unwrap(
-        conn_info,
         nonce,
-        <<@version, their_time::size(@time_bits), @nonce_bytes, nonce::binary-size(@nonce_bytes),
-          data::binary>>,
-        check_age
+        <<@version, time::size(@time_bits), @nonce_size,
+          nonce::binary-size(@nonce_size), data::binary>>
       ) do
-    if check_age do
-      {:ok, conn_info, data}
-    else
-      {:ok, conn_info |> Map.put(:time_offset, their_time), data}
-    end
+    {:ok, time, data}
   end
 
-  def unwrap(_conn_info, _nonce, _packet, _check_age),
-    do: {:error, "Invalid Srpc Msg response packet"}
+  def unwrap(_nonce, _packet), do: {:error, "Invalid Srpc Msg response packet"}
 end

@@ -5,22 +5,21 @@ defmodule SrpcClient.Connection do
 
   alias :srpc_lib, as: SrpcLib
 
-  require SrpcClient.Msg
   alias SrpcClient.Msg, as: SrpcMsg
-
-  require SrpcClient.Action
   alias SrpcClient.Action, as: SrpcAction
+  alias SrpcClient.App, as: SrpcApp
+  alias SrpcClient.Util
 
   @refresh_salt_size 16
 
-  ## =============================================================================================
+  ## ===============================================================================================
   ##
   ##  GenServer
   ##
-  ## =============================================================================================
+  ## ===============================================================================================
   use GenServer
 
-  ## =============================================================================================
+  ## ===============================================================================================
   ##
   ##  Client
   ##
@@ -31,21 +30,19 @@ defmodule SrpcClient.Connection do
   def start_link(conn_info),
     do: GenServer.start_link(__MODULE__, conn_info, name: conn_info[:name])
 
-  ## ---------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
   ##  Init client
-  ## ---------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
   def init(conn_info), do: {:ok, conn_info}
 
-  ## =============================================================================================
+  ## ===============================================================================================
   ##
   ## Public API
   ##
-  ## =============================================================================================
-  ## ---------------------------------------------------------------------------------------------
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
   ##  
-  ## ---------------------------------------------------------------------------------------------
-  def echo(path), do: GenServer.call(__MODULE__, {:echo, path})
-
+  ## -----------------------------------------------------------------------------------------------
   def name, do: GenServer.call(__MODULE__, :name)
 
   def get(path), do: GenServer.call(__MODULE__, {:get, path})
@@ -53,16 +50,15 @@ defmodule SrpcClient.Connection do
   def refresh, do: GenServer.call(__MODULE__, :refresh)
 
   def close, do: GenServer.call(__MODULE__, :close)
-  ## =============================================================================================
+
+  ## ===============================================================================================
   ##
   ##  GenServer Calls
   ##
-  ## =============================================================================================
-  ## ---------------------------------------------------------------------------------------------
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
   ##  
-  ## ---------------------------------------------------------------------------------------------
-  def handle_call({:echo, path}, _from, conn_info), do: {:reply, url(conn_info, path), conn_info}
-
+  ## -----------------------------------------------------------------------------------------------
   def handle_call(:name, _from, conn_info), do: {:reply, conn_info[:name], conn_info}
 
   def handle_call({:get, path}, _from, conn_info), do: {:reply, get(conn_info, path), conn_info}
@@ -75,15 +71,44 @@ defmodule SrpcClient.Connection do
   ##
   ##  Private
   ##
-  ## =============================================================================================
-  ## ---------------------------------------------------------------------------------------------
-  ## ---------------------------------------------------------------------------------------------
-  defp url(conn_info, path), do: "#{conn_info[:url]}#{path}"
-
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
   defp get(conn_info, path) do
-    url(conn_info, path) |> HTTPoison.get!()
+    request(conn_info, :get, path)
   end
 
+  defp request(conn_info, method, path, body \\ "", headers \\ []) do
+    {nonce, packet} = SrpcApp.package(conn_info, method, path, body, headers)
+
+    case Util.post(conn_info[:url], packet) do
+      {:ok, encrypted_response} ->
+        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
+          {:ok, response_data} ->
+            case SrpcMsg.unwrap(nonce, response_data) do
+              {:ok, _time, data} ->
+                require Logger
+                Logger.debug "connection.request resp data = #{inspect data}"
+
+              error ->
+                error
+            end
+
+          error ->
+            error
+        end
+        
+      error ->
+        error
+        
+    end
+
+  end
+
+
+  ## -----------------------------------------------------------------------------------------------
+  ##  Refresh crypto keys
+  ## -----------------------------------------------------------------------------------------------
   defp refresh(conn_info) do
     salt = :crypto.strong_rand_bytes(@refresh_salt_size)
     {nonce, data} = SrpcMsg.wrap(conn_info, salt)
@@ -94,8 +119,8 @@ defmodule SrpcClient.Connection do
           {:ok, conn_info} ->
             case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
               {:ok, refresh_response} ->
-                case SrpcMsg.unwrap(conn_info, nonce, refresh_response) do
-                  {:ok, conn_info, _data} ->
+                case SrpcMsg.unwrap(nonce, refresh_response) do
+                  {:ok, _time, _data} ->
                     {:reply, :ok, conn_info}
 
                   error ->
@@ -115,6 +140,9 @@ defmodule SrpcClient.Connection do
     end
   end
 
+  ## -----------------------------------------------------------------------------------------------
+  ##  Close connection
+  ## -----------------------------------------------------------------------------------------------
   defp close(conn_info) do
     {nonce, data} = SrpcMsg.wrap(conn_info)
 
@@ -122,8 +150,8 @@ defmodule SrpcClient.Connection do
       {:ok, encrypted_response} ->
         case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
           {:ok, close_response} ->
-            case SrpcMsg.unwrap(conn_info, nonce, close_response) do
-              {:ok, conn_info, _data} -> {:reply, :ok, conn_info}
+            case SrpcMsg.unwrap(nonce, close_response) do
+              {:ok, _time, _data} -> {:reply, :ok, conn_info}
               error -> reply_error(conn_info, "close unwrap", error)
             end
 
@@ -136,6 +164,9 @@ defmodule SrpcClient.Connection do
     end
   end
 
+  ## -----------------------------------------------------------------------------------------------
+  ##  Log error message and GenServer reply with error
+  ## -----------------------------------------------------------------------------------------------
   defp reply_error(conn_info, msg, error) do
     require Logger
     Logger.error("#{conn_info[:name]} #{msg} error: #{inspect(error)}")

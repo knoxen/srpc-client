@@ -60,11 +60,9 @@ defmodule SrpcClient.LibKey do
           {:ok, confirm_response} ->
             case SrpcLib.process_lib_key_confirm_response(conn_info, confirm_response) do
               {:ok, confirm_data} ->
-                case SrpcMsg.unwrap(conn_info, nonce, confirm_data, false) do
-                  {:ok, conn_info, _data} ->
-                    their_time = conn_info[:time_offset]
-                    time_offset = their_time - :erlang.system_time(:seconds) - trunc(delta / 2)
-
+                case SrpcMsg.unwrap(nonce, confirm_data) do
+                  {:ok, time, _data} ->
+                    time_offset = time - :erlang.system_time(:seconds) - trunc(delta / 2)
                     {:ok,
                      conn_info
                      |> Map.put(:time_offset, time_offset)

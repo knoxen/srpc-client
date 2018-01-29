@@ -4,6 +4,8 @@ defmodule SrpcClient.Action do
   require SrpcClient.Msg
   alias SrpcClient.Msg, as: SrpcMsg
 
+  alias SrpcClient.Util
+
   @lib_confirm 0x01
   # @lib_user_exchange 0x10
   # @lib_user_confirm 0x11
@@ -15,7 +17,7 @@ defmodule SrpcClient.Action do
   @close 0xFF
 
   def lib_exchange(url, data) do
-    post(url, <<SrpcMsg.lib_exchange(), data::binary>>)
+    Util.post(url, <<SrpcMsg.lib_exchange(), data::binary>>)
   end
 
   def lib_confirm(conn_info, data), do: send(@lib_confirm, conn_info, data)
@@ -34,7 +36,7 @@ defmodule SrpcClient.Action do
   defp send(action, conn_info, data) do
     case packet(action, conn_info, data) do
       {:ok, packet} ->
-        post(conn_info[:url], packet)
+        Util.post(conn_info[:url], packet)
 
       error ->
         error
@@ -53,16 +55,4 @@ defmodule SrpcClient.Action do
     end
   end
 
-  defp post(url, body) do
-    case HTTPoison.post(url, body, [], proxy: {"localhost.charlesproxy.com", 8888}) do
-      {:ok, %{:body => body, :status_code => 200}} ->
-        {:ok, body}
-
-      {:ok, %{:status_code => status_code}} ->
-        {:error, "Status code = #{status_code}"}
-
-      error ->
-        error
-    end
-  end
 end
