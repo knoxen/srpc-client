@@ -31,9 +31,11 @@ defmodule SrpcClient do
   def connect(:lib), do: connection(:lib)
   def connect(:user, id, password), do: connection({:user, id, password})
 
-  def debug(conn, path), do: conn |> GenServer.call({:debug, path})
+  def echo(conn, path), do: conn |> GenServer.call({:echo, path})
 
   def get(conn, path), do: conn |> GenServer.call({:get, path})
+
+  def refresh(conn), do: conn |> GenServer.call(:refresh)
 
   def close(conn) do
     conn |> GenServer.call(:close)

@@ -11,21 +11,26 @@ defmodule SrpcClient.Action do
   # @user_confirm 0x21
   # @registration 0xA0
   # @server_time 0xB0
-  # @refresh 0xC0
+  @refresh 0xC0
   @close 0xFF
 
   def lib_exchange(url, data) do
     post(url, <<SrpcMsg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn_info, data) do
-    send(@lib_confirm, conn_info, data)
-  end
+  def lib_confirm(conn_info, data), do: send(@lib_confirm, conn_info, data)
 
-  def close(conn_info, data) do
-    send(@close, conn_info, data)
-  end
+  def refresh(conn_info, data), do: send(@refresh, conn_info, data)
 
+  def close(conn_info, data), do: send(@close, conn_info, data)
+
+  ## ===============================================================================================
+  ##
+  ##  Private
+  ##
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
   defp send(action, conn_info, data) do
     case packet(action, conn_info, data) do
       {:ok, packet} ->
