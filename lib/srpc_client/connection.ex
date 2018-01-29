@@ -83,20 +83,7 @@ defmodule SrpcClient.Connection do
 
     case Util.post(conn_info[:url], packet) do
       {:ok, encrypted_response} ->
-        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
-          {:ok, response_data} ->
-            case SrpcMsg.unwrap(nonce, response_data) do
-              {:ok, data} ->
-                require Logger
-                Logger.debug("connection.request resp data = #{inspect(data)}")
-
-              error ->
-                error
-            end
-
-          error ->
-            error
-        end
+        SrpcApp.unpackage(conn_info, nonce, encrypted_response)
 
       error ->
         error
