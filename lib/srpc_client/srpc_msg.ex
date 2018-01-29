@@ -17,17 +17,24 @@ defmodule SrpcClient.Msg do
     nonce = :crypto.strong_rand_bytes(@nonce_size)
 
     {nonce,
-     <<@version, time::size(@time_bits), @nonce_size,
-       nonce::binary-size(@nonce_size), data::binary>>}
+     <<@version, time::size(@time_bits), @nonce_size, nonce::binary-size(@nonce_size),
+       data::binary>>}
   end
+
+  def unwrap(nonce, packet, return_time \\ false)
 
   def unwrap(
         nonce,
-        <<@version, time::size(@time_bits), @nonce_size,
-          nonce::binary-size(@nonce_size), data::binary>>
+        <<@version, time::size(@time_bits), @nonce_size, nonce::binary-size(@nonce_size),
+          data::binary>>,
+        return_time
       ) do
-    {:ok, time, data}
+    if return_time do
+      {:ok, data, time}
+    else
+      {:ok, data}
+    end
   end
 
-  def unwrap(_nonce, _packet), do: {:error, "Invalid Srpc Msg response packet"}
+  def unwrap(_nonce, _packet, _return_time), do: {:error, "Invalid Srpc Msg response packet"}
 end

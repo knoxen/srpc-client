@@ -16,6 +16,7 @@ defmodule SrpcClient.App do
     case SrpcLib.encrypt(:origin_requester, conn_info, data) do
       {:ok, encrypted} ->
         {nonce, packet(conn_info, encrypted)}
+
       error ->
         error
     end
@@ -29,19 +30,23 @@ defmodule SrpcClient.App do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp req_info_data(method, path, headers, body) do
-    uri = URI.parse "http://host/#{path}"
-    data = Poison.encode! %{method: method,
-                             path: uri.path || "",
-                             query: uri.query || "",
-                             headers: headers}
+    uri = URI.parse("http://host/#{path}")
+
+    data =
+      Poison.encode!(%{
+        method: method,
+        path: uri.path || "",
+        query: uri.query || "",
+        headers: headers
+      })
+
     data_size = :erlang.byte_size(data)
-    << data_size::size(16), data::binary, body::binary >>
+    <<data_size::size(16), data::binary, body::binary>>
   end
 
   defp packet(conn_info, data) do
     conn_id = conn_info[:conn_id]
-    conn_id_size = :erlang.byte_size conn_id
-    << SrpcMsg.app, conn_id_size, conn_id::binary, data::binary >>
+    conn_id_size = :erlang.byte_size(conn_id)
+    <<SrpcMsg.app(), conn_id_size, conn_id::binary, data::binary>>
   end
-
 end

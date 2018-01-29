@@ -16,6 +16,8 @@ defmodule SrpcClient.Action do
   @refresh 0xC0
   @close 0xFF
 
+  # @refresh_salt_size 16
+
   def lib_exchange(url, data) do
     Util.post(url, <<SrpcMsg.lib_exchange(), data::binary>>)
   end
@@ -23,6 +25,37 @@ defmodule SrpcClient.Action do
   def lib_confirm(conn_info, data), do: send(@lib_confirm, conn_info, data)
 
   def refresh(conn_info, data), do: send(@refresh, conn_info, data)
+
+  # def refresh(conn_info) do
+  #   salt = :crypto.strong_rand_bytes(@refresh_salt_size)
+  #   {nonce, data} = SrpcMsg.wrap(conn_info, salt)
+
+  #   case send(@refresh, conn_info, data) do
+  #     {:ok, encrypted_response} ->
+  #       case SrpcLib.refresh_keys(conn_info, salt) do
+  #         {:ok, conn_info} ->
+  #           case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
+  #             {:ok, refresh_response} ->
+  #               case SrpcMsg.unwrap(nonce, refresh_response) do
+  #                 {:ok, _data} ->
+  #                   {:reply, :ok, conn_info}
+
+  #                 error ->
+  #                   reply_error(conn_info, "refresh unwrap", error)
+  #               end
+
+  #             error ->
+  #               reply_error(conn_info, "refresh decrypt", error)
+  #           end
+
+  #         error ->
+  #           reply_error(conn_info, "refresh keys", error)
+  #       end
+
+  #     error ->
+  #       reply_error(conn_info, "refresh", error)
+  #   end
+  # end
 
   def close(conn_info, data), do: send(@close, conn_info, data)
 
@@ -54,5 +87,4 @@ defmodule SrpcClient.Action do
         error
     end
   end
-
 end

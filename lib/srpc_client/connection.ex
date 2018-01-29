@@ -86,9 +86,9 @@ defmodule SrpcClient.Connection do
         case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
           {:ok, response_data} ->
             case SrpcMsg.unwrap(nonce, response_data) do
-              {:ok, _time, data} ->
+              {:ok, data} ->
                 require Logger
-                Logger.debug "connection.request resp data = #{inspect data}"
+                Logger.debug("connection.request resp data = #{inspect(data)}")
 
               error ->
                 error
@@ -97,14 +97,11 @@ defmodule SrpcClient.Connection do
           error ->
             error
         end
-        
+
       error ->
         error
-        
     end
-
   end
-
 
   ## -----------------------------------------------------------------------------------------------
   ##  Refresh crypto keys
@@ -120,7 +117,7 @@ defmodule SrpcClient.Connection do
             case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
               {:ok, refresh_response} ->
                 case SrpcMsg.unwrap(nonce, refresh_response) do
-                  {:ok, _time, _data} ->
+                  {:ok, _data} ->
                     {:reply, :ok, conn_info}
 
                   error ->
@@ -151,7 +148,7 @@ defmodule SrpcClient.Connection do
         case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
           {:ok, close_response} ->
             case SrpcMsg.unwrap(nonce, close_response) do
-              {:ok, _time, _data} -> {:reply, :ok, conn_info}
+              {:ok, _data} -> {:reply, :ok, conn_info}
               error -> reply_error(conn_info, "close unwrap", error)
             end
 
