@@ -4,12 +4,28 @@ defmodule SrpcClient.App do
   require SrpcClient.Msg
   alias SrpcClient.Msg, as: SrpcMsg
 
+  alias SrpcClient.Util
+
+  require Logger
+
   ## ===============================================================================================
   ##
   ##  Public
   ##
   ## ===============================================================================================
-  def package(conn_info, method, path, body, headers) do
+  def request(conn_info, params) do
+    {nonce, packet} = package(conn_info, params)
+
+    case Util.post(conn_info[:url], packet) do
+      {:ok, encrypted_response} ->
+        unpackage(conn_info, nonce, encrypted_response)
+
+      error ->
+        error
+    end
+  end
+
+  defp package(conn_info, {method, path, body, headers}) do
     req_info_data = req_info_data(method, path, headers, body)
     {nonce, data} = SrpcMsg.wrap(conn_info, req_info_data)
 
@@ -22,7 +38,7 @@ defmodule SrpcClient.App do
     end
   end
 
-  def unpackage(conn_info, nonce, encrypted_response) do
+  defp unpackage(conn_info, nonce, encrypted_response) do
     case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
       {:ok, response_data} ->
         case SrpcMsg.unwrap(nonce, response_data) do

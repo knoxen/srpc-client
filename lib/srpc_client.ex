@@ -33,7 +33,22 @@ defmodule SrpcClient do
 
   def echo(conn, path), do: conn |> GenServer.call({:echo, path})
 
-  def get(conn, path), do: conn |> GenServer.call({:get, path})
+  def get(conn, path, body \\ "", headers \\ []) do
+    conn |> request({:get, path, body, headers})
+  end
+
+  def post(conn, path, body, headers \\ []) do
+    conn |> request({:post, path, body, headers})
+  end
+
+  def request(conn, {method, path}), do: request(conn, {method, path, "", []})
+  def request(conn, {method, path, body}), do: request(conn, {method, path, body, []})
+
+  def request(conn, {_method, _path, _body, _headers} = params) do
+    conn |> GenServer.call({:request, params})
+  end
+
+  def request(_conn, _params), do: {:error, "Invalid request parameters"}
 
   def refresh(conn), do: conn |> GenServer.call(:refresh)
 

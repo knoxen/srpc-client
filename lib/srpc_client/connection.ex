@@ -8,7 +8,6 @@ defmodule SrpcClient.Connection do
   alias SrpcClient.Msg, as: SrpcMsg
   alias SrpcClient.Action, as: SrpcAction
   alias SrpcClient.App, as: SrpcApp
-  alias SrpcClient.Util
 
   @refresh_salt_size 16
 
@@ -37,23 +36,7 @@ defmodule SrpcClient.Connection do
 
   ## ===============================================================================================
   ##
-  ## Public API
-  ##
-  ## ===============================================================================================
-  ## -----------------------------------------------------------------------------------------------
-  ##  
-  ## -----------------------------------------------------------------------------------------------
-  def name, do: GenServer.call(__MODULE__, :name)
-
-  def get(path), do: GenServer.call(__MODULE__, {:get, path})
-
-  def refresh, do: GenServer.call(__MODULE__, :refresh)
-
-  def close, do: GenServer.call(__MODULE__, :close)
-
-  ## ===============================================================================================
-  ##
-  ##  GenServer Calls
+  ##  GenServer calls
   ##
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
@@ -61,7 +44,9 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:name, _from, conn_info), do: {:reply, conn_info[:name], conn_info}
 
-  def handle_call({:get, path}, _from, conn_info), do: {:reply, get(conn_info, path), conn_info}
+  def handle_call({:request, params}, _from, conn_info) do
+    {:reply, SrpcApp.request(conn_info, params), conn_info}
+  end
 
   def handle_call(:refresh, _from, conn_info), do: refresh(conn_info)
 
@@ -74,21 +59,15 @@ defmodule SrpcClient.Connection do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp get(conn_info, path) do
-    request(conn_info, :get, path)
-  end
+  # defp request(conn_info, {method, path}), do: request(conn_info, {method, path, "", []})
 
-  defp request(conn_info, method, path, body \\ "", headers \\ []) do
-    {nonce, packet} = SrpcApp.package(conn_info, method, path, body, headers)
+  # defp request(conn_info, {method, path, body}), do: request(conn_info, {method, path, body, []})
 
-    case Util.post(conn_info[:url], packet) do
-      {:ok, encrypted_response} ->
-        SrpcApp.unpackage(conn_info, nonce, encrypted_response)
+  # defp request(conn_info, {_method, _path, _body, _headers} = params) do
+  #   SrpcApp.request(conn_info, params)    
+  # end
 
-      error ->
-        error
-    end
-  end
+  # defp request(_conn_info, _params), do: {:error, "Invalid request params"}
 
   ## -----------------------------------------------------------------------------------------------
   ##  Refresh crypto keys
