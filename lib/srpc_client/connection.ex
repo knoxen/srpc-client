@@ -58,18 +58,6 @@ defmodule SrpcClient.Connection do
   ##
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
-  ## -----------------------------------------------------------------------------------------------
-  # defp request(conn_info, {method, path}), do: request(conn_info, {method, path, "", []})
-
-  # defp request(conn_info, {method, path, body}), do: request(conn_info, {method, path, body, []})
-
-  # defp request(conn_info, {_method, _path, _body, _headers} = params) do
-  #   SrpcApp.request(conn_info, params)    
-  # end
-
-  # defp request(_conn_info, _params), do: {:error, "Invalid request params"}
-
-  ## -----------------------------------------------------------------------------------------------
   ##  Refresh crypto keys
   ## -----------------------------------------------------------------------------------------------
   defp refresh(conn_info) do

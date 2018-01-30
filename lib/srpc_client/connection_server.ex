@@ -5,7 +5,7 @@ defmodule SrpcClient.ConnectionServer do
 
   # alias :srpc_lib, as: SrpcLib
 
-  alias SrpcClient.{ConnectionsSupervisor, Connection, LibKey, UserKey}
+  alias SrpcClient.{ConnectionSupervisor, Connection, KeyAgreement}
 
   ## ===============================================================================================
   ##
@@ -44,12 +44,12 @@ defmodule SrpcClient.ConnectionServer do
   ##  Create lib connection
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:lib, _from, state) do
-    {:reply, state |> conn_info(:lib) |> LibKey.agreement() |> connection,
+    {:reply, state |> conn_info(:lib) |> KeyAgreement.lib() |> connection,
      state |> Keyword.replace!(:lib_conn_num, state[:lib_conn_num] + 1)}
   end
 
   def handle_call({:user, id, password}, _from, state) do
-    {:reply, state |> conn_info(:user) |> UserKey.agreement(id, password) |> connection,
+    {:reply, state |> conn_info(:user) |> KeyAgreement.user(id, password) |> connection,
      state |> Keyword.replace!(:user_conn_num, state[:user_conn_num] + 1)}
   end
 
@@ -72,6 +72,6 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp connection(conn_state) do
-    DynamicSupervisor.start_child(ConnectionsSupervisor, {Connection, conn_state})
+    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn_state})
   end
 end

@@ -1,4 +1,4 @@
-defmodule SrpcClient.LibKey do
+defmodule SrpcClient.KeyAgreement do
   alias :srpc_lib, as: SrpcLib
 
   require SrpcClient.Msg
@@ -9,7 +9,7 @@ defmodule SrpcClient.LibKey do
 
   require Logger
 
-  def agreement(conn_info) do
+  def lib(conn_info) do
     case lib_exchange(conn_info) do
       {:ok, conn_info} ->
         case lib_confirm(conn_info) do
@@ -27,6 +27,9 @@ defmodule SrpcClient.LibKey do
     end
   end
 
+  def user(_conn_info, _id, _password) do
+  end
+
   defp lib_exchange(conn_info) do
     {client_keys, exch_req} = SrpcLib.create_lib_key_exchange_request(SrpcLib.srpc_id())
 
@@ -41,7 +44,7 @@ defmodule SrpcClient.LibKey do
         end
 
       error ->
-        Logger.error("LibKey.lib_exchange error: #{inspect(error)}")
+        Logger.error("KeyAgrement.lib_exchange error: #{inspect(error)}")
         error
     end
   end
@@ -82,7 +85,7 @@ defmodule SrpcClient.LibKey do
         end
 
       error ->
-        Logger.error("LibKey.lib_confirm error: #{inspect(error)}")
+        Logger.error("KeyAgreement.lib_confirm error: #{inspect(error)}")
         error
     end
   end

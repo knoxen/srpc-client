@@ -1,4 +1,4 @@
-defmodule SrpcClient.ConnectionsSupervisor do
+defmodule SrpcClient.ConnectionSupervisor do
   @moduledoc false
 
   use DynamicSupervisor
