@@ -28,8 +28,8 @@ defmodule SrpcClient do
     Supervisor.start_link(children, opts)
   end
 
-  def connect(:lib), do: connection(:lib)
-  def connect(:user, id, password), do: connection({:user, id, password})
+  def connect(:lib), do: GenServer.call(ConnectionServer, :lib)
+  def connect(:user, id, password), do: GenServer.call(ConnectionServer, {:user, id, password})
 
   def get(conn, path, body \\ "", headers \\ []) do
     conn |> request({:get, path, body, headers})
@@ -55,14 +55,4 @@ defmodule SrpcClient do
     ConnectionSupervisor |> Supervisor.terminate_child(conn)
   end
 
-  defp connection(term) do
-    case GenServer.call(ConnectionServer, term) do
-      {:ok, connection} ->
-        connection
-
-      {:error, reason} ->
-        Logger.error("Failed creating lib connection: #{inspect(reason)}")
-        nil
-    end
-  end
 end

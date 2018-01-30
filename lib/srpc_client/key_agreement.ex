@@ -7,29 +7,21 @@ defmodule SrpcClient.KeyAgreement do
   require SrpcClient.Action
   alias SrpcClient.Action, as: SrpcAction
 
-  require Logger
+  ## CxTBD Optional data processing
 
+  ## ===============================================================================================
+  ##
+  ##   Lib Key Agreement
+  ##
+  ## ===============================================================================================
   def lib(conn_info) do
-    case lib_exchange(conn_info) do
-      {:ok, conn_info} ->
-        case lib_confirm(conn_info) do
-          {:ok, conn_info} ->
-            conn_info
-
-          error ->
-            Logger.error("lib confirm error: #{inspect(error)}")
-            error
-        end
-
-      error ->
-        Logger.error("lib exchange error: #{inspect(error)}")
-        error
-    end
+    conn_info
+    |> lib_exchange
+    |> lib_confirm
   end
-
-  def user(_conn_info, _id, _password) do
-  end
-
+  ## -----------------------------------------------------------------------------------------------
+  ##   Lib Key Exchange
+  ## -----------------------------------------------------------------------------------------------
   defp lib_exchange(conn_info) do
     {client_keys, exch_req} = SrpcLib.create_lib_key_exchange_request(SrpcLib.srpc_id())
 
@@ -44,12 +36,16 @@ defmodule SrpcClient.KeyAgreement do
         end
 
       error ->
-        Logger.error("KeyAgrement.lib_exchange error: #{inspect(error)}")
         error
     end
   end
 
-  defp lib_confirm(conn_info) do
+  # defp lib_exchange(error), do: error
+  
+  ## -----------------------------------------------------------------------------------------------
+  ##   Lib Key Exchange
+  ## -----------------------------------------------------------------------------------------------
+  defp lib_confirm({:ok, conn_info}) do
     {nonce, client_data} = SrpcMsg.wrap(conn_info)
     confirm_request = SrpcLib.create_lib_key_confirm_request(conn_info, client_data)
 
@@ -85,8 +81,38 @@ defmodule SrpcClient.KeyAgreement do
         end
 
       error ->
-        Logger.error("KeyAgreement.lib_confirm error: #{inspect(error)}")
         error
     end
   end
+
+  defp lib_confirm(error), do: error
+
+  ## ===============================================================================================
+  ##
+  ##   User Key Agreement
+  ##
+  ## ===============================================================================================
+  def user(conn_info, user_id, _password) do
+    conn_info
+    |> lib_exchange
+    |> lib_confirm
+    |> user_exchange(user_id)
+  end
+
+  defp user_exchange({:ok, conn_info}, user_id) do
+    {client_keys, exch_req} = SrpcLib.create_user_key_exchange_request(user_id)
+
+    case SrpcAction.lib_exchange(conn_info[:url], exch_req) do
+      {:ok, exch_resp} ->
+        conn_info = conn_info |> Map.replace!(:entity_id, user_id)
+        conn_info
+
+      error ->
+        error
+    end
+    
+  end
+
+  defp user_exchange(error, _user_id), do: error
+  
 end
