@@ -25,7 +25,7 @@ defmodule SrpcClient.Action do
   def lib_confirm(conn_info, data), do: send(@lib_confirm, conn_info, data)
 
   def lib_user_exchange(conn_info, data), do: send(@lib_user_exchange, conn_info, data)
-  
+
   def lib_user_confirm(conn_info, data), do: send(@lib_user_confirm, conn_info, data)
 
   def refresh(conn_info, data), do: send(@refresh, conn_info, data)
@@ -40,7 +40,7 @@ defmodule SrpcClient.Action do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp send(action, conn_info, data) do
-    case packet(action, conn_info, data) do
+    case package(action, conn_info, data) do
       {:ok, packet} ->
         Util.post(conn_info[:url], packet)
 
@@ -49,7 +49,7 @@ defmodule SrpcClient.Action do
     end
   end
 
-  defp packet(action, conn_info, data) do
+  defp package(action, conn_info, data) do
     case SrpcLib.encrypt(:origin_requester, conn_info, data) do
       {:ok, encrypted} ->
         conn_id = conn_info[:conn_id]

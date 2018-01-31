@@ -54,5 +54,4 @@ defmodule SrpcClient do
     conn |> GenServer.call(:close)
     ConnectionSupervisor |> Supervisor.terminate_child(conn)
   end
-
 end
