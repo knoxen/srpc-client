@@ -31,6 +31,8 @@ defmodule SrpcClient do
   def connect(:lib), do: GenServer.call(ConnectionServer, :lib)
   def connect(:user, id, password), do: GenServer.call(ConnectionServer, {:user, id, password})
 
+  def info(conn), do: conn |> GenServer.call(:info)
+
   def get(conn, path, body \\ "", headers \\ []) do
     conn |> request({:get, path, body, headers})
   end

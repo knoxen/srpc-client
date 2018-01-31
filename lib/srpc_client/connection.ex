@@ -32,7 +32,22 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##  Init client
   ## -----------------------------------------------------------------------------------------------
-  def init(conn_info), do: {:ok, conn_info}
+  def init(conn_info) do
+    {:ok,
+     conn_info
+     |> Map.put(:created, :erlang.system_time(:second))
+     |> accessed()
+     |> keyed()
+    }
+  end
+
+  def info, do: GenServer.call(__MODULE__, :info)
+
+  
+  def name, do: GenServer.call(__MODULE__, :name)
+  def created, do: GenServer.call(__MODULE__, :created)
+  def accessed, do: GenServer.call(__MODULE__, :accessed)
+  def keyed, do: GenServer.call(__MODULE__, :accessed)
 
   ## ===============================================================================================
   ##
@@ -42,10 +57,18 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##  
   ## -----------------------------------------------------------------------------------------------
-  def handle_call(:name, _from, conn_info), do: {:reply, conn_info[:name], conn_info}
-
+  def handle_call(:info, _from, conn_info) do
+    {:reply,
+     %{name: conn_info[:name],
+       created: conn_info[:created],
+       accessed: :erlang.monotonic_time(:second) - conn_info[:accessed],
+       keyed: :erlang.monotonic_time(:second) - conn_info[:keyed]
+     },
+     conn_info}
+  end
+  
   def handle_call({:request, params}, _from, conn_info) do
-    {:reply, SrpcApp.request(conn_info, params), conn_info}
+    {:reply, SrpcApp.request(conn_info, params), conn_info |> accessed()}
   end
 
   def handle_call(:refresh, _from, conn_info), do: refresh(conn_info)
@@ -72,7 +95,7 @@ defmodule SrpcClient.Connection do
               {:ok, refresh_response} ->
                 case SrpcMsg.unwrap(nonce, refresh_response) do
                   {:ok, _data} ->
-                    {:reply, :ok, conn_info}
+                    {:reply, :ok, conn_info |> keyed()}
 
                   error ->
                     reply_error(conn_info, "refresh unwrap", error)
@@ -119,9 +142,9 @@ defmodule SrpcClient.Connection do
   ##  Log error message and GenServer reply with error
   ## -----------------------------------------------------------------------------------------------
   defp reply_error(conn_info, msg, error) do
-    require Logger
-    Logger.error("#{conn_info[:name]} #{msg} error: #{inspect(error)}")
-
     {:reply, error, conn_info}
   end
+
+  defp keyed(conn_info), do: conn_info |> Map.put(:keyed, :erlang.monotonic_time(:second))
+  defp accessed(conn_info), do: conn_info |> Map.put(:accessed, :erlang.monotonic_time(:second))
 end
