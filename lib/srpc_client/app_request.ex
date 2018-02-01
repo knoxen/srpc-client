@@ -27,14 +27,14 @@ defmodule SrpcClient.AppRequest do
 
   defp package(conn_info, {method, path, body, headers}) do
     req_info_data = req_info_data(method, path, headers, body)
-    {nonce, data} = SrpcMsg.wrap(conn_info, req_info_data)
 
-    case SrpcLib.encrypt(:origin_requester, conn_info, data) do
-      {:ok, encrypted} ->
-        {nonce, srpc_packet(conn_info, encrypted)}
-
-      error ->
+    case SrpcMsg.wrap(conn_info, req_info_data, true) do
+      {:error, _} = error ->
         error
+
+      {nonce, encrypted_data} ->
+        packet = srpc_packet(conn_info, encrypted_data)
+        {nonce, packet}
     end
   end
 

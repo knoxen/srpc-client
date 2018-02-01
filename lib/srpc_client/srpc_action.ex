@@ -22,20 +22,20 @@ defmodule SrpcClient.Action do
     Util.post(url, <<SrpcMsg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn_info, {:ok, data}), do: send(conn_info, @lib_confirm, data)
+  def lib_confirm(conn_info, {:ok, packet}), do: send(conn_info, @lib_confirm, packet)
   def lib_confirm(_conn_info, error), do: error
 
-  def lib_user_exchange(conn_info, {:ok, data}), do: send(conn_info, @lib_user_exchange, data)
+  def lib_user_exchange(conn_info, {:ok, packet}), do: send(conn_info, @lib_user_exchange, packet)
   def lib_user_exchange(_conn_info, error), do: error
 
-  def lib_user_confirm(conn_info, {:ok, data}), do: send(conn_info, @lib_user_confirm, data)
+  def lib_user_confirm(conn_info, {:ok, packet}), do: send(conn_info, @lib_user_confirm, packet)
   def lib_user_confirm(_conn_info, error), do: error
 
-  def register(conn_info, data), do: send(conn_info, @registration, data)
+  def register(conn_info, packet), do: send(conn_info, @registration, packet)
 
-  def refresh(conn_info, data), do: send(conn_info, @refresh, data, true)
+  def refresh(conn_info, packet), do: send(conn_info, @refresh, packet)
 
-  def close(conn_info, data), do: send(conn_info, @close, data, true)
+  def close(conn_info, packet), do: send(conn_info, @close, packet)
 
   ## ===============================================================================================
   ##

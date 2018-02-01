@@ -19,7 +19,7 @@ defmodule SrpcClient.LibKeyAgreement do
   end
 
   ## -----------------------------------------------------------------------------------------------
-  ##   Lib Key Exchange
+  ##   Lib key exchange
   ## -----------------------------------------------------------------------------------------------
   defp exchange(conn_info) do
     {client_keys, request} = SrpcLib.create_lib_key_exchange_request(SrpcLib.srpc_id())
@@ -40,7 +40,7 @@ defmodule SrpcClient.LibKeyAgreement do
   end
 
   ## -----------------------------------------------------------------------------------------------
-  ##   Lib Key Exchange
+  ##   Lib key confirm
   ## -----------------------------------------------------------------------------------------------
   defp confirm({:ok, conn_info}) do
     {nonce, client_data} = SrpcMsg.wrap(conn_info)
@@ -52,21 +52,15 @@ defmodule SrpcClient.LibKeyAgreement do
       {:ok, encrypted_response} ->
         delta = :erlang.system_time(:seconds) - start_time
 
-        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
-          {:ok, confirm_response} ->
-            case SrpcLib.process_lib_key_confirm_response(conn_info, confirm_response) do
-              {:ok, conn_info, confirm_data} ->
-                case SrpcMsg.unwrap(nonce, confirm_data, true) do
-                  {:ok, _data, time} ->
-                    time_offset = time - :erlang.system_time(:seconds) - trunc(delta / 2)
+        case SrpcLib.process_lib_key_confirm_response(conn_info, encrypted_response) do
+          {:ok, conn_info, confirm_data} ->
+            case SrpcMsg.unwrap(nonce, confirm_data, true) do
+              {:ok, _data, time} ->
+                time_offset = time - :erlang.system_time(:seconds) - trunc(delta / 2)
 
-                    {:ok,
-                     conn_info
-                     |> Map.put(:time_offset, time_offset)}
-
-                  error ->
-                    error
-                end
+                {:ok,
+                 conn_info
+                 |> Map.put(:time_offset, time_offset)}
 
               error ->
                 error

@@ -74,13 +74,20 @@ defmodule SrpcClient.Connection do
   ##
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
-  ##  Refresh crypto keys
+  ##  Refresh connection keys
   ## -----------------------------------------------------------------------------------------------
   defp refresh(conn_info) do
     salt = :crypto.strong_rand_bytes(@refresh_salt_size)
-    {nonce, data} = SrpcMsg.wrap(conn_info, salt)
 
-    case SrpcAction.refresh(conn_info, data) do
+    conn_info
+    |> SrpcMsg.wrap(salt, true)
+    |> refresh(salt, conn_info)
+  end
+
+  defp refresh({:error, _} = error, _salt, _conn_info), do: error
+
+  defp refresh({nonce, packet}, salt, conn_info) do
+    case SrpcAction.refresh(conn_info, packet) do
       {:ok, encrypted_response} ->
         case SrpcLib.refresh_keys(conn_info, salt) do
           {:ok, conn_info} ->
@@ -91,19 +98,19 @@ defmodule SrpcClient.Connection do
                     {:reply, :ok, conn_info |> keyed()}
 
                   error ->
-                    reply_error(conn_info, "refresh unwrap", error)
+                    {:reply, error, conn_info}
                 end
 
               error ->
-                reply_error(conn_info, "refresh decrypt", error)
+                {:reply, error, conn_info}
             end
 
           error ->
-            reply_error(conn_info, "refresh keys", error)
+            {:reply, error, conn_info}
         end
 
       error ->
-        reply_error(conn_info, "refresh", error)
+        {:reply, error, conn_info}
     end
   end
 
@@ -111,31 +118,27 @@ defmodule SrpcClient.Connection do
   ##  Close connection
   ## -----------------------------------------------------------------------------------------------
   defp close(conn_info) do
-    {nonce, data} = SrpcMsg.wrap(conn_info)
+    conn_info
+    |> SrpcMsg.wrap(true)
+    |> close(conn_info)
+  end
 
-    case SrpcAction.close(conn_info, data) do
-      {:ok, encrypted_response} ->
-        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
-          {:ok, close_response} ->
-            case SrpcMsg.unwrap(nonce, close_response) do
-              {:ok, _data} -> {:reply, :ok, conn_info}
-              error -> reply_error(conn_info, "close unwrap", error)
-            end
+  defp close({:error, _} = error, _conn_info), do: error
+
+  defp close({nonce, packet}, conn_info) do
+    case SrpcAction.close(conn_info, packet) do
+      {:ok, close_response} ->
+        case SrpcMsg.unwrap(nonce, close_response) do
+          {:ok, _data} ->
+            {:reply, :ok, conn_info}
 
           error ->
-            reply_error(conn_info, "close decrypt", error)
+            {:reply, error, conn_info}
         end
 
       error ->
-        reply_error(conn_info, "close", error)
+        {:reply, error, conn_info}
     end
-  end
-
-  ## -----------------------------------------------------------------------------------------------
-  ##  Log error message and GenServer reply with error
-  ## -----------------------------------------------------------------------------------------------
-  defp reply_error(conn_info, msg, error) do
-    {:reply, {msg, error}, conn_info}
   end
 
   defp keyed(conn_info), do: conn_info |> Map.put(:keyed, :erlang.monotonic_time(:second))

@@ -33,36 +33,31 @@ defmodule SrpcClient.UserKeyAgreement do
 
     case SrpcAction.lib_user_exchange(conn_info, request) do
       {:ok, encrypted_response} ->
-        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
-          {:ok, exchange_response} ->
-            case SrpcLib.process_user_key_exchange_response(
-                   user_id,
-                   password,
-                   client_keys,
-                   exchange_response
-                 ) do
-              {:ok, user_conn_info, @valid_user_id, exchange_data} ->
-                case SrpcMsg.unwrap(nonce, exchange_data) do
-                  {:ok, _data} ->
-                    conn_info
-                    |> Map.take([:name, :url, :time_offset])
-                    |> Map.merge(user_conn_info)
-                    |> confirm
+        case SrpcLib.process_user_key_exchange_response(
+               conn_info,
+               user_id,
+               password,
+               client_keys,
+               encrypted_response
+             ) do
+          {:ok, user_conn_info, @valid_user_id, exchange_data} ->
+            case SrpcMsg.unwrap(nonce, exchange_data) do
+              {:ok, _data} ->
+                conn_info
+                |> Map.take([:name, :url, :time_offset])
+                |> Map.merge(user_conn_info)
+                |> confirm
 
-                  error ->
-                    error
-                end
+              error ->
+                error
+            end
 
-              {:ok, user_conn_info, @invalid_user_id, _data} ->
-                confirm_request = SrpcLib.create_user_key_confirm_request(user_conn_info)
+          {:ok, user_conn_info, @invalid_user_id, _data} ->
+            confirm_request = SrpcLib.create_user_key_confirm_request(user_conn_info)
 
-                case SrpcAction.lib_user_confirm(conn_info, confirm_request) do
-                  {:ok, _encrypted_response} ->
-                    {:invalid, "Invalid user"}
-
-                  error ->
-                    error
-                end
+            case SrpcAction.lib_user_confirm(conn_info, confirm_request) do
+              {:ok, _encrypted_response} ->
+                {:invalid, "Invalid user"}
 
               error ->
                 error
@@ -86,24 +81,15 @@ defmodule SrpcClient.UserKeyAgreement do
 
     case SrpcAction.lib_user_confirm(conn_info, confirm_request) do
       {:ok, encrypted_response} ->
-        case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
-          {:ok, confirm_response} ->
-            case SrpcLib.process_user_key_confirm_response(conn_info, confirm_response) do
-              {:ok, conn_info, confirm_data} ->
-                case SrpcMsg.unwrap(nonce, confirm_data) do
-                  {:ok, _data} ->
-                    {:ok, conn_info}
-
-                  error ->
-                    error
-                end
+        case SrpcLib.process_user_key_confirm_response(conn_info, encrypted_response) do
+          {:ok, conn_info, confirm_data} ->
+            case SrpcMsg.unwrap(nonce, confirm_data) do
+              {:ok, _data} ->
+                {:ok, conn_info}
 
               error ->
                 error
             end
-
-          {:invalid, _reason} ->
-            {:invalid, "Invalid password"}
 
           error ->
             error
