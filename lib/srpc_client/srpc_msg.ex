@@ -12,13 +12,13 @@ defmodule SrpcClient.Msg do
     wrap(conn_info, <<>>)
   end
 
-  def wrap(conn_info, data) do
+  def wrap(conn_info, data, encrypt \\ false) do
     time = :erlang.system_time(:second) + conn_info[:time_offset]
-    nonce = :crypto.strong_rand_bytes(@nonce_size)
 
-    {nonce,
-     <<@version, time::size(@time_bits), @nonce_size, nonce::binary-size(@nonce_size),
-       data::binary>>}
+    {nonce, nonce_data} = nonce_data()
+    wrapped_data = <<@version, time::size(@time_bits), nonce_data::binary, data::binary>>
+    
+    {nonce, wrapped_data}
   end
 
   def unwrap(nonce, packet, return_time \\ false)
@@ -37,4 +37,10 @@ defmodule SrpcClient.Msg do
   end
 
   def unwrap(_nonce, _packet, _return_time), do: {:error, "Invalid Srpc Msg response packet"}
+
+  defp nonce_data do
+    nonce = :crypto.strong_rand_bytes(@nonce_size)
+    {nonce, << @nonce_size, nonce::binary-size(@nonce_size) >>}
+  end
+
 end
