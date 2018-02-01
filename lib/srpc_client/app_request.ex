@@ -1,4 +1,4 @@
-defmodule SrpcClient.App do
+defmodule SrpcClient.AppRequest do
   alias :srpc_lib, as: SrpcLib
 
   require SrpcClient.Msg
@@ -13,7 +13,7 @@ defmodule SrpcClient.App do
   ##  Public
   ##
   ## ===============================================================================================
-  def request(conn_info, params) do
+  def post(conn_info, params) do
     {nonce, packet} = package(conn_info, params)
 
     case Util.post(conn_info[:url], packet) do

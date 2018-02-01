@@ -20,7 +20,7 @@ defmodule SrpcClient.UserKeyAgreement do
   ##   Connect
   ## -----------------------------------------------------------------------------------------------
   def connect({:ok, conn_info}, user_id, password), do: exchange(conn_info, user_id, password)
-  def connect(error, user_id, password), do: error
+  def connect(error, _user_id, _password), do: error
 
   ## -----------------------------------------------------------------------------------------------
   ##   User key exchange

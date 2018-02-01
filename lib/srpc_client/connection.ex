@@ -7,7 +7,7 @@ defmodule SrpcClient.Connection do
 
   alias SrpcClient.Msg, as: SrpcMsg
   alias SrpcClient.Action, as: SrpcAction
-  alias SrpcClient.App, as: SrpcApp
+  alias SrpcClient.AppRequest
 
   @refresh_salt_size 16
 
@@ -61,7 +61,7 @@ defmodule SrpcClient.Connection do
   def handle_call({:info, :raw}, _from, conn_info), do: {:reply, conn_info, conn_info}
 
   def handle_call({:request, params}, _from, conn_info) do
-    {:reply, SrpcApp.request(conn_info, params), conn_info |> accessed()}
+    {:reply, AppRequest.post(conn_info, params), conn_info |> accessed()}
   end
 
   def handle_call(:refresh, _from, conn_info), do: refresh(conn_info)
