@@ -22,17 +22,17 @@ defmodule SrpcClient.Action do
     Util.post(url, <<SrpcMsg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn_info, data), do: send(conn_info, @lib_confirm, data)
+  def lib_confirm(conn_info, data), do: send(conn_info, @lib_confirm, data, true)
 
-  def lib_user_exchange(conn_info, data), do: send(conn_info, @lib_user_exchange, data)
+  def lib_user_exchange(conn_info, data), do: send(conn_info, @lib_user_exchange, data, true)
 
-  def lib_user_confirm(conn_info, data), do: send(conn_info, @lib_user_confirm, data)
+  def lib_user_confirm(conn_info, data), do: send(conn_info, @lib_user_confirm, data, true)
 
   def register(conn_info, data), do: send(conn_info, @registration, data)
 
-  def refresh(conn_info, data), do: send(conn_info, @refresh, data)
+  def refresh(conn_info, data), do: send(conn_info, @refresh, data, true)
 
-  def close(conn_info, data), do: send(conn_info, @close, data)
+  def close(conn_info, data), do: send(conn_info, @close, data, true)
 
   ## ===============================================================================================
   ##
@@ -41,7 +41,7 @@ defmodule SrpcClient.Action do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp send(conn_info, action, data, encrypt \\ true) do
+  defp send(conn_info, action, data, encrypt \\ false) do
     conn_info
     |> encrypt(data, encrypt)
     |> package(action, conn_info[:conn_id])
