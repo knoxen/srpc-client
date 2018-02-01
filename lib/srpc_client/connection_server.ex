@@ -48,8 +48,8 @@ defmodule SrpcClient.ConnectionServer do
      state |> Keyword.replace!(:lib_conn_num, state[:lib_conn_num] + 1)}
   end
 
-  def handle_call({:user, id, password}, _from, state) do
-    {:reply, state |> conn_info(:user) |> KeyAgreement.user(id, password) |> start_conn,
+  def handle_call({:lib_user, id, password}, _from, state) do
+    {:reply, state |> conn_info(:user) |> KeyAgreement.lib_user(id, password) |> start_conn,
      state |> Keyword.replace!(:user_conn_num, state[:user_conn_num] + 1)}
   end
 

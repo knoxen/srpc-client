@@ -3,8 +3,7 @@ defmodule SrpcClient do
   Documentation for SrpcClient.
   """
 
-  alias SrpcClient.ConnectionServer
-  alias SrpcClient.ConnectionSupervisor
+  alias SrpcClient.{ConnectionServer, ConnectionSupervisor, Registration}
 
   use Application
 
@@ -29,9 +28,15 @@ defmodule SrpcClient do
   end
 
   def connect(:lib), do: GenServer.call(ConnectionServer, :lib)
-  def connect(:user, id, password), do: GenServer.call(ConnectionServer, {:user, id, password})
+
+  def connect(:user, id, password),
+    do: GenServer.call(ConnectionServer, {:lib_user, id, password})
+
+  # def register(user_id, password), do: Registration.register(user_id, password)
+  def register(conn, user_id, password), do: Registration.register(conn, user_id, password)
 
   def info(conn), do: conn |> GenServer.call(:info)
+  def info(conn, :raw), do: conn |> GenServer.call({:info, :raw})
 
   def get(conn, path, body \\ "", headers \\ []) do
     conn |> request({:get, path, body, headers})

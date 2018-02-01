@@ -37,17 +37,8 @@ defmodule SrpcClient.Connection do
      conn_info
      |> Map.put(:created, :erlang.system_time(:second))
      |> accessed()
-     |> keyed()
-    }
+     |> keyed()}
   end
-
-  def info, do: GenServer.call(__MODULE__, :info)
-
-  
-  def name, do: GenServer.call(__MODULE__, :name)
-  def created, do: GenServer.call(__MODULE__, :created)
-  def accessed, do: GenServer.call(__MODULE__, :accessed)
-  def keyed, do: GenServer.call(__MODULE__, :accessed)
 
   ## ===============================================================================================
   ##
@@ -59,14 +50,16 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:info, _from, conn_info) do
     {:reply,
-     %{name: conn_info[:name],
+     %{
+       name: conn_info[:name],
        created: conn_info[:created],
        accessed: :erlang.monotonic_time(:second) - conn_info[:accessed],
        keyed: :erlang.monotonic_time(:second) - conn_info[:keyed]
-     },
-     conn_info}
+     }, conn_info}
   end
-  
+
+  def handle_call({:info, :raw}, _from, conn_info), do: {:reply, conn_info, conn_info}
+
   def handle_call({:request, params}, _from, conn_info) do
     {:reply, SrpcApp.request(conn_info, params), conn_info |> accessed()}
   end
@@ -142,7 +135,7 @@ defmodule SrpcClient.Connection do
   ##  Log error message and GenServer reply with error
   ## -----------------------------------------------------------------------------------------------
   defp reply_error(conn_info, msg, error) do
-    {:reply, error, conn_info}
+    {:reply, {msg, error}, conn_info}
   end
 
   defp keyed(conn_info), do: conn_info |> Map.put(:keyed, :erlang.monotonic_time(:second))
