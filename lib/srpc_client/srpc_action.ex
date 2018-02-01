@@ -23,12 +23,13 @@ defmodule SrpcClient.Action do
   end
 
   def lib_confirm(conn_info, {:ok, data}), do: send(conn_info, @lib_confirm, data)
-  def lib_confirm(conn_info, error), do: error
+  def lib_confirm(_conn_info, error), do: error
 
-  def lib_user_exchange(conn_info, data), do: send(conn_info, @lib_user_exchange, data, true)
+  def lib_user_exchange(conn_info, {:ok, data}), do: send(conn_info, @lib_user_exchange, data)
+  def lib_user_exchange(_conn_info, error), do: error
 
   def lib_user_confirm(conn_info, {:ok, data}), do: send(conn_info, @lib_user_confirm, data)
-  def lib_user_confirm(conn_info, error), do: error
+  def lib_user_confirm(_conn_info, error), do: error
 
   def register(conn_info, data), do: send(conn_info, @registration, data)
 

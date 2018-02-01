@@ -1,5 +1,4 @@
 defmodule SrpcClient.Util do
-
   def post(url, body) do
     case HTTPoison.post(url, body, [], proxy: "http://localhost.charlesproxy.com:8888") do
       {:ok, %{:body => body, :status_code => 200}} ->

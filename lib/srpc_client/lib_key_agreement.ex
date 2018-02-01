@@ -47,6 +47,7 @@ defmodule SrpcClient.LibKeyAgreement do
     confirm_request = SrpcLib.create_lib_key_confirm_request(conn_info, client_data)
 
     start_time = :erlang.system_time(:seconds)
+
     case SrpcAction.lib_confirm(conn_info, confirm_request) do
       {:ok, encrypted_response} ->
         delta = :erlang.system_time(:seconds) - start_time

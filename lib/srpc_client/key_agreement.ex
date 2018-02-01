@@ -14,5 +14,4 @@ defmodule SrpcClient.KeyAgreement do
   def user(conn_info, user_id, password) do
     UserKeyAgreement.connect(conn_info, user_id, password)
   end
-  
 end

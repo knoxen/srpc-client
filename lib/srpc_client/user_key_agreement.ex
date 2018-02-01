@@ -27,9 +27,11 @@ defmodule SrpcClient.UserKeyAgreement do
   ## -----------------------------------------------------------------------------------------------
   defp exchange(conn_info, user_id, password) do
     {nonce, client_data} = SrpcMsg.wrap(conn_info)
-    {client_keys, exch_req} = SrpcLib.create_user_key_exchange_request(user_id, client_data)
 
-    case SrpcAction.lib_user_exchange(conn_info, exch_req) do
+    {client_keys, request} =
+      SrpcLib.create_user_key_exchange_request(conn_info, user_id, client_data)
+
+    case SrpcAction.lib_user_exchange(conn_info, request) do
       {:ok, encrypted_response} ->
         case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
           {:ok, exchange_response} ->
@@ -53,6 +55,7 @@ defmodule SrpcClient.UserKeyAgreement do
 
               {:ok, user_conn_info, @invalid_user_id, _data} ->
                 confirm_request = SrpcLib.create_user_key_confirm_request(user_conn_info)
+
                 case SrpcAction.lib_user_confirm(conn_info, confirm_request) do
                   {:ok, _encrypted_response} ->
                     {:invalid, "Invalid user"}
@@ -101,7 +104,7 @@ defmodule SrpcClient.UserKeyAgreement do
 
           {:invalid, _reason} ->
             {:invalid, "Invalid password"}
-            
+
           error ->
             error
         end
