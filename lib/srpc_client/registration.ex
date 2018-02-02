@@ -26,12 +26,12 @@ defmodule SrpcClient.Registration do
 
   def register(_conn, _user_id, _password) do
     # def register(conn, user_id, password) do
-    #   conn_info = conn |> SrpcClient.info(:raw)
+    #   conn = conn |> SrpcClient.info(:raw)
 
-    #   {nonce, client_data} = SrpcMsg.wrap(conn_info)
+    #   {nonce, client_data} = SrpcMsg.wrap(conn)
 
     #   case SrpcLib.create_registration_request(
-    #         conn_info,
+    #         conn,
     #         @registration_create,
     #         user_id,
     #         password,
@@ -39,16 +39,16 @@ defmodule SrpcClient.Registration do
     #     {ok, encrypted_request} ->
 
     #   registration_request = SrpcLib.create_registration_request(
-    #     conn_info,
+    #     conn,
     #     @registration_create,
     #     user_id,
     #     password,
     #     client_data)
 
-    #   case SrpcAction.register(conn_info, registration_request) do
+    #   case SrpcAction.register(conn, registration_request) do
     #     {:ok, encrypted_response} ->
 
-    #       case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
+    #       case SrpcLib.decrypt(:origin_responder, conn, encrypted_response) do
     #         {:ok, registration_response} ->
     #           Logger.debug "reg resp: #{registration_response |> Base.encode16 |> inspect}"
 

@@ -18,9 +18,10 @@ defmodule SrpcClient.Msg do
   ## -----------------------------------------------------------------------------------------------
   ##  Wrap data for Sprc messaging
   ## -----------------------------------------------------------------------------------------------
-  def wrap(conn_info), do: wrap(conn_info, <<>>)
-  def wrap(conn_info, data) do
-    time = :erlang.system_time(:second) + conn_info[:time_offset]
+  def wrap(conn), do: wrap(conn, <<>>)
+
+  def wrap(conn, data) do
+    time = :erlang.system_time(:second) + conn[:time_offset]
     time_data = <<time::size(@time_bits)>>
     nonce = :crypto.strong_rand_bytes(@nonce_size)
     nonce_data = <<@nonce_size, nonce::binary-size(@nonce_size)>>
@@ -30,12 +31,15 @@ defmodule SrpcClient.Msg do
   ## -----------------------------------------------------------------------------------------------
   ##  Wrap data and encrypt for Sprc messaging
   ## -----------------------------------------------------------------------------------------------
-  def wrap_encrypt(conn_info), do: wrap_encrypt(conn_info, <<>>)
-  def wrap_encrypt(conn_info, data) do
-    {nonce, wrapped_data} = wrap(conn_info, data)
-    case SrpcLib.encrypt(:origin_requester, conn_info, wrapped_data) do
+  def wrap_encrypt(conn), do: wrap_encrypt(conn, <<>>)
+
+  def wrap_encrypt(conn, data) do
+    {nonce, wrapped_data} = wrap(conn, data)
+
+    case SrpcLib.encrypt(:origin_requester, conn, wrapped_data) do
       {:ok, encrypted_data} ->
         {nonce, encrypted_data}
+
       error ->
         error
     end
@@ -43,15 +47,16 @@ defmodule SrpcClient.Msg do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def decrypt_unwrap(conn_info, nonce, encrypted_data, return_time \\ false) do
-    case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_data) do
+  def decrypt_unwrap(conn, nonce, encrypted_data, return_time \\ false) do
+    case SrpcLib.decrypt(:origin_responder, conn, encrypted_data) do
       {:ok, data} ->
         unwrap(nonce, data)
+
       error ->
         error
     end
   end
-  
+
   def unwrap(nonce, packet, return_time \\ false)
 
   def unwrap(

@@ -26,16 +26,16 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##  Start client
   ## -----------------------------------------------------------------------------------------------
-  def start_link(conn_info),
-    do: GenServer.start_link(__MODULE__, conn_info, name: conn_info[:name])
+  def start_link(conn), do: GenServer.start_link(__MODULE__, conn, name: conn[:name])
 
   ## -----------------------------------------------------------------------------------------------
   ##  Init client
   ## -----------------------------------------------------------------------------------------------
-  def init(conn_info) do
+  def init(conn) do
     now = mono_time()
+
     {:ok,
-     conn_info
+     conn
      |> Map.put(:created, now)
      |> accessed(now)
      |> keyed(now)}
@@ -49,26 +49,27 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##  
   ## -----------------------------------------------------------------------------------------------
-  def handle_call(:info, _from, conn_info) do
+  def handle_call(:info, _from, conn) do
     now = mono_time()
+
     {:reply,
      %{
-       name: conn_info[:name],
-       created: now - conn_info[:created],
-       accessed: now - conn_info[:accessed],
-       keyed: now - conn_info[:keyed]
-     }, conn_info}
+       name: conn[:name],
+       created: now - conn[:created],
+       accessed: now - conn[:accessed],
+       keyed: now - conn[:keyed]
+     }, conn}
   end
 
-  def handle_call({:info, :raw}, _from, conn_info), do: {:reply, conn_info, conn_info}
+  def handle_call({:info, :raw}, _from, conn), do: {:reply, conn, conn}
 
-  def handle_call({:request, params}, _from, conn_info) do
-    {:reply, AppRequest.post(conn_info, params), conn_info |> accessed(mono_time())}
+  def handle_call({:request, params}, _from, conn) do
+    {:reply, AppRequest.post(conn, params), conn |> accessed(mono_time())}
   end
 
-  def handle_call(:refresh, _from, conn_info), do: refresh(conn_info)
+  def handle_call(:refresh, _from, conn), do: refresh(conn)
 
-  def handle_call(:close, _from, conn_info), do: close(conn_info)
+  def handle_call(:close, _from, conn), do: close(conn)
 
   ## ===============================================================================================
   ##
@@ -78,66 +79,67 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##  Refresh connection keys
   ## -----------------------------------------------------------------------------------------------
-  defp refresh(conn_info) do
+  defp refresh(conn) do
     salt = :crypto.strong_rand_bytes(@refresh_salt_size)
 
-    conn_info
+    conn
     |> SrpcMsg.wrap_encrypt(salt)
-    |> refresh(salt, conn_info)
+    |> refresh(salt, conn)
   end
 
-  defp refresh({:error, _} = error, _salt, _conn_info), do: error
+  defp refresh({:error, _} = error, _salt, _conn), do: error
 
-  defp refresh({nonce, packet}, salt, conn_info) do
-    case SrpcAction.refresh(conn_info, packet) do
+  defp refresh({nonce, packet}, salt, conn) do
+    case SrpcAction.refresh(conn, packet) do
       {:ok, encrypted_response} ->
-        case SrpcLib.refresh_keys(conn_info, salt) do
-          {:ok, conn_info} ->
-            case SrpcMsg.decrypt_unwrap(conn_info, nonce, encrypted_response) do
+        case SrpcLib.refresh_keys(conn, salt) do
+          {:ok, conn} ->
+            case SrpcMsg.decrypt_unwrap(conn, nonce, encrypted_response) do
               {:ok, _data} ->
-                {:reply, :ok, conn_info |> keyed(mono_time())}
-                
-                error ->
-                {:reply, error, conn_info}
+                {:reply, :ok, conn |> keyed(mono_time())}
+
+              error ->
+                {:reply, error, conn}
             end
 
           error ->
-            {:reply, error, conn_info}
+            {:reply, error, conn}
         end
+
       error ->
-        {:reply, error, conn_info}
+        {:reply, error, conn}
     end
   end
-  
+
   ## -----------------------------------------------------------------------------------------------
   ##  Close connection
   ## -----------------------------------------------------------------------------------------------
-  defp close(conn_info) do
-    conn_info
+  defp close(conn) do
+    conn
     |> SrpcMsg.wrap_encrypt()
-    |> close(conn_info)
+    |> close(conn)
   end
 
-  defp close({:error, _} = error, _conn_info), do: error
+  defp close({:error, _} = error, _conn), do: error
 
-  defp close({nonce, packet}, conn_info) do
-    case SrpcAction.close(conn_info, packet) do
+  defp close({nonce, packet}, conn) do
+    case SrpcAction.close(conn, packet) do
       {:ok, encrypted_response} ->
-        case SrpcMsg.decrypt_unwrap(conn_info, nonce, encrypted_response) do
+        case SrpcMsg.decrypt_unwrap(conn, nonce, encrypted_response) do
           {:ok, _data} ->
-            {:reply, :ok, conn_info}
+            {:reply, :ok, conn}
 
           error ->
-            {:reply, error, conn_info}
+            {:reply, error, conn}
         end
 
       error ->
-        {:reply, error, conn_info}
+        {:reply, error, conn}
     end
   end
 
-  defp keyed(conn_info, mono_time), do: conn_info |> Map.put(:keyed, mono_time)
-  defp accessed(conn_info, mono_time), do: conn_info |> Map.put(:accessed, mono_time)
+  defp keyed(conn, mono_time), do: conn |> Map.put(:keyed, mono_time)
+  defp accessed(conn, mono_time), do: conn |> Map.put(:accessed, mono_time)
 
   defp mono_time, do: :erlang.monotonic_time(:second)
 end
