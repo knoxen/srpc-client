@@ -27,57 +27,66 @@ defmodule SrpcClient do
     Supervisor.start_link(children, opts)
   end
 
+  ## ===============================================================================================
+  ##
+  ##  Public
+  ##
+  ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def connect(:lib), do: GenServer.call(ConnectionServer, :lib)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def connect(:user, id, password),
-    do: GenServer.call(ConnectionServer, {:lib_user, id, password})
+  def connect(:user, uid, pw), do: GenServer.call(ConnectionServer, {:lib_user, uid, pw})
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  # def register(user_id, password), do: Registration.register(user_id, password)
-  def register(conn, user_id, password), do: Registration.register(conn, user_id, password)
+  def register(uid, pw), do: Registration.register(uid, pw)
+  def register(conn_pid, uid, pw), do: Registration.register(conn_pid, uid, pw)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def info(conn), do: conn |> GenServer.call(:info)
-  def info(conn, :raw), do: conn |> GenServer.call({:info, :raw})
+  def update(uid, pw), do: Registration.update(uid, pw)
+  def update(conn_pid, uid, pw), do: Registration.update(conn_pid, uid, pw)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def get(conn, path, body \\ "", headers \\ []) do
-    conn |> request({:get, path, body, headers})
+  def info(conn_pid), do: conn_pid |> GenServer.call(:info)
+  def info(conn_pid, :raw), do: conn_pid |> GenServer.call({:info, :raw})
+
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
+  def get(conn_pid, path, body \\ "", headers \\ []) do
+    conn_pid |> request({:get, path, body, headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def post(conn, path, body, headers \\ []) do
-    conn |> request({:post, path, body, headers})
+  def post(conn_pid, path, body, headers \\ []) do
+    conn_pid |> request({:post, path, body, headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def request(conn, {method, path}), do: request(conn, {method, path, "", []})
-  def request(conn, {method, path, body}), do: request(conn, {method, path, body, []})
+  def request(conn_pid, {method, path}), do: request(conn_pid, {method, path, "", []})
+  def request(conn_pid, {method, path, body}), do: request(conn_pid, {method, path, body, []})
 
-  def request(conn, {_method, _path, _body, _headers} = params) do
-    conn |> GenServer.call({:request, params})
+  def request(conn_pid, {_method, _path, _body, _headers} = params) do
+    conn_pid |> GenServer.call({:request, params})
   end
 
-  def request(_conn, _params), do: {:error, "Invalid request parameters"}
+  def request(_conn_pid, _params), do: {:error, "Invalid request parameters"}
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def refresh(conn), do: conn |> GenServer.call(:refresh)
+  def refresh(conn_pid), do: conn_pid |> GenServer.call(:refresh)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def close(conn) do
-    result = conn |> GenServer.call(:close)
-    ConnectionSupervisor |> Supervisor.terminate_child(conn)
+  def close(conn_pid) do
+    result = conn_pid |> GenServer.call(:close)
+    ConnectionSupervisor |> Supervisor.terminate_child(conn_pid)
     result
   end
 end

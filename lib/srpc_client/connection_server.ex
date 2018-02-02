@@ -71,8 +71,8 @@ defmodule SrpcClient.ConnectionServer do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp start_conn({:ok, conn}) do
-    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn})
+  defp start_conn({:ok, conn_pid}) do
+    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn_pid})
   end
 
   defp start_conn(error), do: error

@@ -2,70 +2,104 @@ defmodule SrpcClient.Registration do
   alias :srpc_lib, as: SrpcLib
   alias SrpcClient.Action, as: SrpcAction
   alias SrpcClient.Msg, as: SrpcMsg
+  alias SrpcClient.Util, as: Util
 
-  @registration_create 1
-  # @registration_update 2
-  # @registration_ok 10
-  # @registration_dup 11
-  # @registration_not_found 12
+  @reg_create 1
+  @reg_update 2
+  @reg_ok 10
+  @reg_dup 11
+  @reg_not_found 12
 
-  require Logger
+  ## ===============================================================================================
+  ##
+  ##  Public
+  ##
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
+  def register(user_id, password) do
+    lib_exec(&register/3, user_id, password)
+  end
 
-  # def register(user_id, password) do
-  #   case SrpcClient.connect :lib do
-  #     {:ok, conn} ->
-  #       result = register(conn, user_id, password)
-  #       Logger.debug "result = #{inspect result}"
-  #       SrpcClient.close conn
-  #       result
+  def register(conn_pid, user_id, password) do
+    case registration_request(conn_pid, @reg_create, user_id, password) do
+      {:ok, {@reg_ok, _data}} ->
+        :ok
 
-  #     error ->
-  #       error
-  #   end
-  # end
+      {:ok, {@reg_dup, _data}} ->
+        {:error, "User already registered"}
 
-  def register(_conn, _user_id, _password) do
-    # def register(conn, user_id, password) do
-    #   conn = conn |> SrpcClient.info(:raw)
+      error ->
+        error
+    end
+  end
 
-    #   {nonce, client_data} = SrpcMsg.wrap(conn)
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
+  def update(user_id, password) do
+    lib_exec(&update/3, user_id, password)
+  end
 
-    #   case SrpcLib.create_registration_request(
-    #         conn,
-    #         @registration_create,
-    #         user_id,
-    #         password,
-    #         client_data) do
-    #     {ok, encrypted_request} ->
+  def update(conn_pid, user_id, password) do
+    case registration_request(conn_pid, @reg_update, user_id, password) do
+      {:ok, {@reg_ok, _data}} ->
+        :ok
 
-    #   registration_request = SrpcLib.create_registration_request(
-    #     conn,
-    #     @registration_create,
-    #     user_id,
-    #     password,
-    #     client_data)
+      {:ok, {@reg_not_found, _data}} ->
+        {:error, "User registeration not found"}
 
-    #   case SrpcAction.register(conn, registration_request) do
-    #     {:ok, encrypted_response} ->
+      error ->
+        error
+    end
+  end
 
-    #       case SrpcLib.decrypt(:origin_responder, conn, encrypted_response) do
-    #         {:ok, registration_response} ->
-    #           Logger.debug "reg resp: #{registration_response |> Base.encode16 |> inspect}"
+  ## ===============================================================================================
+  ##
+  ##  Private
+  ##
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
+  defp lib_exec(reg_fun, user_id, password) do
+    case SrpcClient.connect(:lib) do
+      {:ok, conn_pid} ->
+        result = reg_fun.(conn_pid, user_id, password)
+        SrpcClient.close(conn_pid)
+        result
 
-    #           case SrpcMsg.unwrap(nonce, registration_response) do
-    #             {:ok, data} ->
-    #               Logger.debug "data = #{data |> Base.encode16 |> inspect}"
-    #               data
-    #             error ->
-    #               error
-    #           end
+      error ->
+        error
+    end
+  end
 
-    #         error ->
-    #           error
-    #       end
+  defp registration_request(conn_pid, reg_code, user_id, password) do
+    conn = conn_pid |> SrpcClient.info(:raw)
+    {nonce, client_data} = SrpcMsg.wrap(conn)
 
-    #     error ->
-    #       error
-    #   end
+    case SrpcLib.create_registration_request(conn, reg_code, user_id, password, client_data) do
+      {:ok, encrypted_request} ->
+        case SrpcAction.register(conn, encrypted_request) do
+          {:ok, encrypted_response} ->
+            case SrpcLib.process_registration_response(conn, encrypted_response) do
+              {:ok, {return_code, registration_response}} ->
+                case SrpcMsg.unwrap(nonce, registration_response) do
+                  {:ok, data} ->
+                    {:ok, {return_code, data}}
+
+                  error ->
+                    Util.tag(error, "Registration unwrap")
+                end
+
+              error ->
+                Util.tag(error, "Process registration response")
+            end
+
+          error ->
+            Util.tag(error, "Registration action")
+        end
+
+      error ->
+        Util.tag(error, "Create registration request")
+    end
   end
 end

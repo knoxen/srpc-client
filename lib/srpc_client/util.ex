@@ -11,4 +11,12 @@ defmodule SrpcClient.Util do
         error
     end
   end
+
+  def tag({:error, reason}, msg) do
+    <<msg::binary, " error: ", reason::binary>>
+  end
+
+  def tag({:invalid, reason}, msg) do
+    <<msg::binary, " invalid: ", reason::binary>>
+  end
 end
