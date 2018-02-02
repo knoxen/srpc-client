@@ -43,6 +43,14 @@ defmodule SrpcClient.Msg do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
+  def decrypt_unwrap(conn_info, nonce, encrypted_data, return_time \\ false) do
+    case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_data) do
+      {:ok, data} ->
+        unwrap(nonce, data)
+      error ->
+        error
+    end
+  end
   
   def unwrap(nonce, packet, return_time \\ false)
 

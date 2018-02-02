@@ -91,29 +91,22 @@ defmodule SrpcClient.Connection do
       {:ok, encrypted_response} ->
         case SrpcLib.refresh_keys(conn_info, salt) do
           {:ok, conn_info} ->
-            case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
-              {:ok, refresh_response} ->
-                case SrpcMsg.unwrap(nonce, refresh_response) do
-                  {:ok, _data} ->
-                    {:reply, :ok, conn_info |> keyed()}
-
-                  error ->
-                    {:reply, error, conn_info}
-                end
-
-              error ->
+            case SrpcMsg.decrypt_unwrap(conn_info, nonce, encrypted_response) do
+              {:ok, _data} ->
+                {:reply, :ok, conn_info |> keyed()}
+                
+                error ->
                 {:reply, error, conn_info}
             end
 
           error ->
             {:reply, error, conn_info}
         end
-
       error ->
         {:reply, error, conn_info}
     end
   end
-
+  
   ## -----------------------------------------------------------------------------------------------
   ##  Close connection
   ## -----------------------------------------------------------------------------------------------
@@ -127,8 +120,8 @@ defmodule SrpcClient.Connection do
 
   defp close({nonce, packet}, conn_info) do
     case SrpcAction.close(conn_info, packet) do
-      {:ok, close_response} ->
-        case SrpcMsg.unwrap(nonce, close_response) do
+      {:ok, encrypted_response} ->
+        case SrpcMsg.decrypt_unwrap(conn_info, nonce, encrypted_response) do
           {:ok, _data} ->
             {:reply, :ok, conn_info}
 
