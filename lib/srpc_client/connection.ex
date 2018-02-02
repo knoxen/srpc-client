@@ -33,11 +33,12 @@ defmodule SrpcClient.Connection do
   ##  Init client
   ## -----------------------------------------------------------------------------------------------
   def init(conn_info) do
+    now = mono_time()
     {:ok,
      conn_info
-     |> Map.put(:created, :erlang.system_time(:second))
-     |> accessed()
-     |> keyed()}
+     |> Map.put(:created, now)
+     |> accessed(now)
+     |> keyed(now)}
   end
 
   ## ===============================================================================================
@@ -49,19 +50,20 @@ defmodule SrpcClient.Connection do
   ##  
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:info, _from, conn_info) do
+    now = mono_time()
     {:reply,
      %{
        name: conn_info[:name],
-       created: conn_info[:created],
-       accessed: :erlang.monotonic_time(:second) - conn_info[:accessed],
-       keyed: :erlang.monotonic_time(:second) - conn_info[:keyed]
+       created: now - conn_info[:created],
+       accessed: now - conn_info[:accessed],
+       keyed: now - conn_info[:keyed]
      }, conn_info}
   end
 
   def handle_call({:info, :raw}, _from, conn_info), do: {:reply, conn_info, conn_info}
 
   def handle_call({:request, params}, _from, conn_info) do
-    {:reply, AppRequest.post(conn_info, params), conn_info |> accessed()}
+    {:reply, AppRequest.post(conn_info, params), conn_info |> accessed(mono_time())}
   end
 
   def handle_call(:refresh, _from, conn_info), do: refresh(conn_info)
@@ -93,7 +95,7 @@ defmodule SrpcClient.Connection do
           {:ok, conn_info} ->
             case SrpcMsg.decrypt_unwrap(conn_info, nonce, encrypted_response) do
               {:ok, _data} ->
-                {:reply, :ok, conn_info |> keyed()}
+                {:reply, :ok, conn_info |> keyed(mono_time())}
                 
                 error ->
                 {:reply, error, conn_info}
@@ -134,6 +136,8 @@ defmodule SrpcClient.Connection do
     end
   end
 
-  defp keyed(conn_info), do: conn_info |> Map.put(:keyed, :erlang.monotonic_time(:second))
-  defp accessed(conn_info), do: conn_info |> Map.put(:accessed, :erlang.monotonic_time(:second))
+  defp keyed(conn_info, mono_time), do: conn_info |> Map.put(:keyed, mono_time)
+  defp accessed(conn_info, mono_time), do: conn_info |> Map.put(:accessed, mono_time)
+
+  defp mono_time, do: :erlang.monotonic_time(:second)
 end
