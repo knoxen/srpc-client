@@ -80,7 +80,7 @@ defmodule SrpcClient.Connection do
     salt = :crypto.strong_rand_bytes(@refresh_salt_size)
 
     conn_info
-    |> SrpcMsg.wrap(salt, true)
+    |> SrpcMsg.wrap_encrypt(salt)
     |> refresh(salt, conn_info)
   end
 
@@ -119,7 +119,7 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   defp close(conn_info) do
     conn_info
-    |> SrpcMsg.wrap(true)
+    |> SrpcMsg.wrap_encrypt()
     |> close(conn_info)
   end
 

@@ -28,7 +28,7 @@ defmodule SrpcClient.AppRequest do
   defp package(conn_info, {method, path, body, headers}) do
     req_info_data = req_info_data(method, path, headers, body)
 
-    case SrpcMsg.wrap(conn_info, req_info_data, true) do
+    case SrpcMsg.wrap_encrypt(conn_info, req_info_data) do
       {:error, _} = error ->
         error
 
