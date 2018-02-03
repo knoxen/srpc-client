@@ -50,7 +50,7 @@ defmodule SrpcClient.Msg do
   def decrypt_unwrap(conn, nonce, encrypted_data, return_time \\ false) do
     case SrpcLib.decrypt(:origin_responder, conn, encrypted_data) do
       {:ok, data} ->
-        unwrap(nonce, data)
+        unwrap(nonce, data, return_time)
 
       error ->
         error

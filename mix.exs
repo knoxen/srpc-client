@@ -8,12 +8,21 @@ defmodule SrpcClient.Mixfile do
       elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
       deps: deps()
-    ]
+    ] ++ project(Mix.env())
+  end
+
+  defp project(:dev) do
+    [erlc_options: []]
+  end
+
+  # CxTBD The erlc_options don't seem to "take". Pass --no-debug-info to mix compile for now.
+  defp project(:prod) do
+    [erlc_options: [:no_debug_info, :warnings_as_errors]]
   end
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [],
       mod: {SrpcClient, []}
     ]
   end
@@ -33,8 +42,7 @@ defmodule SrpcClient.Mixfile do
 
   defp deps(:prod) do
     [
-      {:srpc_lib, path: "../../../erlang/srpc_lib"}
-      # {:srpc_lib, path: "local/srpc_lib", compile: false},
+      {:srpc_lib, path: "local/srpc_lib", compile: false}
     ]
   end
 end

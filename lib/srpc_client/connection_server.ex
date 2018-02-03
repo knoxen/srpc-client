@@ -27,12 +27,16 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   ##  Init client
   ## -----------------------------------------------------------------------------------------------
-  def init([host: host, port: port] = args) when is_binary(host) and is_integer(port) do
-    {:ok, args ++ [lib_conn_num: 1, user_conn_num: 1]}
-  end
-
   def init(args) do
-    {:stop, "Invalid args #{inspect(args)}"}
+    unless args[:host], do: raise("Missing config for server host")
+
+    opts =
+      case args[:proxy] do
+        nil -> []
+        proxy -> [proxy: proxy]
+      end
+
+    {:ok, [host: args[:host], port: args[:port] || 80, lib_conn_num: 1, user_conn_num: 1] ++ opts}
   end
 
   ## ===============================================================================================
@@ -44,12 +48,12 @@ defmodule SrpcClient.ConnectionServer do
   ##  Create lib connection
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:lib, _from, state) do
-    {:reply, state |> conn(:lib) |> KeyAgreement.lib() |> start_conn,
+    {:reply, state |> conn_info(:lib) |> KeyAgreement.lib() |> start_conn,
      state |> Keyword.replace!(:lib_conn_num, state[:lib_conn_num] + 1)}
   end
 
   def handle_call({:lib_user, id, password}, _from, state) do
-    {:reply, state |> conn(:user) |> KeyAgreement.lib_user(id, password) |> start_conn,
+    {:reply, state |> conn_info(:user) |> KeyAgreement.lib_user(id, password) |> start_conn,
      state |> Keyword.replace!(:user_conn_num, state[:user_conn_num] + 1)}
   end
 
@@ -60,8 +64,17 @@ defmodule SrpcClient.ConnectionServer do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp conn(state, type) do
-    %{type: type, name: conn_name(state, type), url: "http://#{state[:host]}:#{state[:port]}"}
+  defp conn_info(state, type) do
+    conn_info = %{
+      type: type,
+      name: conn_name(state, type),
+      url: "http://#{state[:host]}:#{state[:port]}"
+    }
+
+    case state[:proxy] do
+      nil -> conn_info
+      proxy -> conn_info |> Map.put(:proxy, proxy)
+    end
   end
 
   ## -----------------------------------------------------------------------------------------------

@@ -6,40 +6,38 @@ defmodule SrpcClient.AppRequest do
 
   alias SrpcClient.Util
 
-  require Logger
-
   ## ===============================================================================================
   ##
   ##  Public
   ##
   ## ===============================================================================================
-  def post(conn, params) do
-    {nonce, packet} = package(conn, params)
+  def post(conn_info, params) do
+    {nonce, packet} = package(conn_info, params)
 
-    case Util.post(conn[:url], packet) do
+    case Util.post(conn_info, packet) do
       {:ok, encrypted_response} ->
-        unpackage(conn, nonce, encrypted_response)
+        unpackage(conn_info, nonce, encrypted_response)
 
       error ->
         error
     end
   end
 
-  defp package(conn, {method, path, body, headers}) do
+  defp package(conn_info, {method, path, body, headers}) do
     req_info_data = req_info_data(method, path, headers, body)
 
-    case SrpcMsg.wrap_encrypt(conn, req_info_data) do
+    case SrpcMsg.wrap_encrypt(conn_info, req_info_data) do
       {:error, _} = error ->
         error
 
       {nonce, encrypted_data} ->
-        packet = srpc_packet(conn, encrypted_data)
+        packet = srpc_packet(conn_info, encrypted_data)
         {nonce, packet}
     end
   end
 
-  defp unpackage(conn, nonce, encrypted_response) do
-    case SrpcLib.decrypt(:origin_responder, conn, encrypted_response) do
+  defp unpackage(conn_info, nonce, encrypted_response) do
+    case SrpcLib.decrypt(:origin_responder, conn_info, encrypted_response) do
       {:ok, response_data} ->
         case SrpcMsg.unwrap(nonce, response_data) do
           {:ok, <<len::size(16), resp_info::binary-size(len), resp_data::binary>>} ->
@@ -88,8 +86,8 @@ defmodule SrpcClient.AppRequest do
     <<data_size::size(16), data::binary, body::binary>>
   end
 
-  defp srpc_packet(conn, data) do
-    conn_id = conn[:conn_id]
+  defp srpc_packet(conn_info, data) do
+    conn_id = conn_info[:conn_id]
     conn_id_size = :erlang.byte_size(conn_id)
     <<SrpcMsg.app(), conn_id_size, conn_id::binary, data::binary>>
   end

@@ -7,8 +7,6 @@ defmodule SrpcClient do
 
   use Application
 
-  require Logger
-
   def start(_type, []) do
     Process.register(self(), :SrpcClient)
 
