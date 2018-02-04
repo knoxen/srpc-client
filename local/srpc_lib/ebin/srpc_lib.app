@@ -1,6 +1,6 @@
 {application,srpc_lib,
              [{description,"Knoxen SRPC Lib"},
-              {vsn,"0.15.1+build.142.ref4efe1d2"},
+              {vsn,"0.15.1+build.145.ref36c6c87"},
               {registered,[]},
               {modules,[srpc_encryptor,srpc_key_agreement,srpc_lib,
                         srpc_lib_key_agreement,srpc_registration,srpc_sec,
