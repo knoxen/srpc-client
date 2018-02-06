@@ -61,7 +61,7 @@ defmodule SrpcClient.Connection do
      }, conn}
   end
 
-  def handle_call({:info, :raw}, _from, conn), do: {:reply, conn, conn}
+  def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
   def handle_call({:request, params}, _from, conn) do
     {:reply, AppRequest.post(conn, params), conn |> accessed(mono_time())}

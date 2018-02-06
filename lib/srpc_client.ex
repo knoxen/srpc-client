@@ -8,15 +8,9 @@ defmodule SrpcClient do
   use Application
 
   def start(_type, []) do
-    Process.register(self(), :SrpcClient)
+    Process.register(self(), __MODULE__)
 
-    server_params = Application.get_env(:srpc_client, :server)
-
-    children = [
-      {ConnectionServer, server_params},
-      Supervisor.child_spec({ConnectionSupervisor, []}, type: :supervisor)
-    ]
-
+    children = [ConnectionServer, ConnectionSupervisor]
     opts = [
       strategy: :one_for_one,
       name: SrpcClient.Supervisor
@@ -51,18 +45,18 @@ defmodule SrpcClient do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def info(conn_pid), do: conn_pid |> GenServer.call(:info)
-  def info(conn_pid, :raw), do: conn_pid |> GenServer.call({:info, :raw})
+  def info(conn_pid, :full), do: conn_pid |> GenServer.call({:info, :full})
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def get(conn_pid, path, body \\ "", headers \\ []) do
-    conn_pid |> request({:get, path, body, headers})
+    conn_pid |> request({:GET, path, body, headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def post(conn_pid, path, body, headers \\ []) do
-    conn_pid |> request({:post, path, body, headers})
+    conn_pid |> request({:POST, path, body, headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
