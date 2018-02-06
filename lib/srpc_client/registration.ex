@@ -73,7 +73,7 @@ defmodule SrpcClient.Registration do
   end
 
   defp registration_request(conn_pid, reg_code, user_id, password) do
-    conn = conn_pid |> SrpcClient.info(:raw)
+    conn = conn_pid |> SrpcClient.info(:full)
     {nonce, client_data} = SrpcMsg.wrap(conn)
 
     case SrpcLib.create_registration_request(conn, reg_code, user_id, password, client_data) do

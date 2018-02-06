@@ -58,13 +58,33 @@ defmodule SrpcClient.ConnectionServer do
   ##  Create lib connection
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:lib, _from, state) do
-    {:reply, state |> conn_info(:lib) |> KeyAgreement.lib() |> start_conn,
-     state |> Keyword.replace!(:lib_conn_num, state[:lib_conn_num] + 1)}
+    state
+    |> conn_info(:lib)
+    |> KeyAgreement.lib()
+    |> case do
+         {:ok, conn_pid} ->
+           {:reply, start_conn(conn_pid), state |> bump_conn_num(:lib_conn_num)}
+         {:invalid, 503} ->
+           {:reply, server_down(), state}
+         error ->
+           {:reply, error, state}
+       end
   end
 
   def handle_call({:lib_user, id, password}, _from, state) do
-    {:reply, state |> conn_info(:user) |> KeyAgreement.lib_user(id, password) |> start_conn,
-     state |> Keyword.replace!(:user_conn_num, state[:user_conn_num] + 1)}
+    state
+    |> conn_info(:user)
+    |> KeyAgreement.lib_user(id, password)
+    |> case do
+         {:ok, conn_pid} ->
+           {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}
+         {:invalid, 503} ->
+           {:reply, server_down(), state}
+         {:invalid, _} ->
+           {:reply, {:error, "Invalid user login"}, state}
+         error ->
+           {:reply, error, state}
+       end
   end
 
   ## ===============================================================================================
@@ -94,9 +114,16 @@ defmodule SrpcClient.ConnectionServer do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp start_conn({:ok, conn_pid}) do
+  defp start_conn(conn_pid) do
     DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn_pid})
   end
 
-  defp start_conn(error), do: error
+  defp bump_conn_num(state, conn_num) do
+    state |> Keyword.replace!(conn_num, state[conn_num] + 1)
+  end
+
+  defp server_down do
+    server_params = Application.get_env(:srpc_client, :server)
+    {:error, "Error connecting to server using #{inspect(server_params)}"}
+  end
 end
