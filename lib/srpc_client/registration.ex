@@ -61,7 +61,7 @@ defmodule SrpcClient.Registration do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp lib_exec(reg_fun, user_id, password) do
-    case SrpcClient.connect(:lib) do
+    case SrpcClient.connect() do
       {:ok, conn_pid} ->
         result = reg_fun.(conn_pid, user_id, password)
         SrpcClient.close(conn_pid)
