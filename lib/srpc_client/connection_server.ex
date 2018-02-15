@@ -24,9 +24,7 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   def child_spec(_) do
     params = Application.get_env(:srpc_client, :server)
-    %{id: __MODULE__,
-      start: {__MODULE__, :start_link, [params]},
-      type: :supervisor}
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [params]}, type: :supervisor}
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -62,29 +60,43 @@ defmodule SrpcClient.ConnectionServer do
     |> conn_info(:lib)
     |> KeyAgreement.lib()
     |> case do
-         {:ok, conn_pid} ->
-           {:reply, start_conn(conn_pid), state |> bump_conn_num(:lib_conn_num)}
-         {:invalid, 503} ->
-           {:reply, server_down(), state}
-         error ->
-           {:reply, error, state}
-       end
+      {:ok, conn_pid} ->
+        {:reply, start_conn(conn_pid), state |> bump_conn_num(:lib_conn_num)}
+
+      {:invalid, 503} ->
+        {:reply, connection_refused(), state}
+
+      {:error, %HTTPoison.Error{reason: :econnrefused}} ->
+        {:reply, connection_refused(), state}
+
+      error ->
+        {:reply, error, state}
+    end
   end
 
+  ## -----------------------------------------------------------------------------------------------
+  ##  Create user connection
+  ## -----------------------------------------------------------------------------------------------
   def handle_call({:lib_user, id, password}, _from, state) do
     state
     |> conn_info(:user)
     |> KeyAgreement.lib_user(id, password)
     |> case do
-         {:ok, conn_pid} ->
-           {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}
-         {:invalid, 503} ->
-           {:reply, server_down(), state}
-         {:invalid, _} ->
-           {:reply, {:error, "Invalid user login"}, state}
-         error ->
-           {:reply, error, state}
-       end
+      {:ok, conn_pid} ->
+        {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}
+
+      {:invalid, 503} ->
+        {:reply, connection_refused(), state}
+
+      {:invalid, _} ->
+        {:reply, {:error, "Invalid user login"}, state}
+
+      {:error, %HTTPoison.Error{reason: :econnrefused}} ->
+        {:reply, connection_refused(), state}
+
+      error ->
+        {:reply, error, state}
+    end
   end
 
   ## ===============================================================================================
@@ -122,8 +134,19 @@ defmodule SrpcClient.ConnectionServer do
     state |> Keyword.replace!(conn_num, state[conn_num] + 1)
   end
 
-  defp server_down do
-    server_params = Application.get_env(:srpc_client, :server)
-    {:error, "Error connecting to server using #{inspect(server_params)}"}
+  ## -----------------------------------------------------------------------------------------------
+  ##  String representation of the url and optional proxy in use.
+  ## -----------------------------------------------------------------------------------------------
+  defp connection_refused do
+    server = Application.get_env(:srpc_client, :server)
+
+    proxy =
+      if server[:proxy] do
+        "via proxy #{server[:proxy]}"
+      else
+        ""
+      end
+
+    {:error, "Connection refused: http://#{server[:host]}:#{server[:port]} #{proxy}"}
   end
 end
