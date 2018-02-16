@@ -1,9 +1,9 @@
 defmodule SrpcClient.Util do
-  def post(%{:proxy => proxy} = conn_info, body), do: post(conn_info, body, proxy: proxy)
-  def post(conn_info, body), do: post(conn_info, body, [])
+  def post(%{:proxy => proxy} = conn, body), do: post(conn, body, proxy: proxy)
+  def post(conn, body), do: post(conn, body, [])
 
-  def post(conn_info, body, opts) do
-    case HTTPoison.post(conn_info[:url], body, [], opts) do
+  def post(conn, body, opts) do
+    case HTTPoison.post(conn[:url], body, [], opts) do
       {:ok, %{:body => body, :status_code => 200}} ->
         {:ok, body}
 
