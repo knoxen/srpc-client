@@ -17,7 +17,12 @@ defmodule SrpcClient.UserKeyAgreement do
   ## -----------------------------------------------------------------------------------------------
   ##   Connect
   ## -----------------------------------------------------------------------------------------------
-  def connect({:ok, conn_info}, user_id, password), do: exchange(conn_info, user_id, password)
+  def connect({:ok, conn_info}, user_id, password) do
+    conn_info
+    |> exchange(user_id, password)
+    |> confirm
+  end
+
   def connect(error, _user_id, _password), do: error
 
   ## -----------------------------------------------------------------------------------------------
@@ -41,10 +46,10 @@ defmodule SrpcClient.UserKeyAgreement do
           {:ok, user_conn_info, @valid_user_id, exchange_data} ->
             case SrpcMsg.unwrap(nonce, exchange_data) do
               {:ok, _data} ->
-                conn_info
-                |> Map.take([:name, :url, :time_offset])
-                |> Map.merge(user_conn_info)
-                |> confirm
+                {:ok,
+                 conn_info
+                 |> Map.take([:name, :url, :time_offset, :type])
+                 |> Map.merge(user_conn_info)}
 
               error ->
                 error
@@ -73,7 +78,7 @@ defmodule SrpcClient.UserKeyAgreement do
   ## -----------------------------------------------------------------------------------------------
   ##   User key confirm
   ## -----------------------------------------------------------------------------------------------
-  defp confirm(conn_info) do
+  defp confirm({:ok, conn_info}) do
     {nonce, client_data} = SrpcMsg.wrap(conn_info)
     confirm_request = SrpcLib.create_user_key_confirm_request(conn_info, client_data)
 
@@ -97,4 +102,6 @@ defmodule SrpcClient.UserKeyAgreement do
         error
     end
   end
+
+  defp confirm(error), do: error
 end

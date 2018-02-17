@@ -13,7 +13,7 @@ defmodule SrpcClient do
     :ok =
       required_opt(:srpc_file)
       |> File.read!()
-      |> :srpc_lib.init()    
+      |> :srpc_lib.init()
 
     children = [ConnectionServer, ConnectionSupervisor]
 
@@ -87,7 +87,7 @@ defmodule SrpcClient do
   def request(conn_pid, {method, path, body}), do: request(conn_pid, {method, path, body, []})
 
   def request(conn_pid, {method, path, body, headers} = params)
-  when is_atom(method) and is_binary(path) and is_binary(body) and is_list(headers) do
+      when is_atom(method) and is_binary(path) and is_binary(body) and is_list(headers) do
     conn_pid |> GenServer.call({:request, params})
   end
 
@@ -105,7 +105,7 @@ defmodule SrpcClient do
     unless value = Application.get_env(:srpc_client, opt) do
       raise SrpcClient.Error, message: "SrpcClient: Required configuration for #{opt} missing"
     end
+
     value
   end
-  
 end
