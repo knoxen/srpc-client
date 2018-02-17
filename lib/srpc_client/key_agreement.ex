@@ -8,10 +8,7 @@ defmodule SrpcClient.KeyAgreement do
   def lib_user(conn_info, user_id, password) do
     conn_info
     |> LibKeyAgreement.connect()
-    |> user(user_id, password)
+    |> UserKeyAgreement.connect(user_id, password)
   end
 
-  def user(conn_info, user_id, password) do
-    UserKeyAgreement.connect(conn_info, user_id, password)
-  end
 end
