@@ -48,54 +48,54 @@ defmodule SrpcClient do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def refresh(conn_pid), do: conn_pid |> GenServer.call(:refresh)
+  def refresh(conn), do: conn |> GenServer.call(:refresh)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def close(conn_pid) do
-    result = conn_pid |> GenServer.call(:close)
-    ConnectionSupervisor |> Supervisor.terminate_child(conn_pid)
+  def close(conn) do
+    result = conn |> GenServer.call(:close)
+    ConnectionSupervisor |> Supervisor.terminate_child(conn)
     result
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def register(uid, pw), do: Registration.register(uid, pw)
-  def register(conn_pid, uid, pw), do: Registration.register(conn_pid, uid, pw)
+  def register(conn, uid, pw), do: Registration.register(conn, uid, pw)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def update(uid, pw), do: Registration.update(uid, pw)
-  def update(conn_pid, uid, pw), do: Registration.update(conn_pid, uid, pw)
+  def update(conn, uid, pw), do: Registration.update(conn, uid, pw)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def info(conn_pid), do: conn_pid |> GenServer.call(:info)
-  def info(conn_pid, :full), do: conn_pid |> GenServer.call({:info, :full})
+  def info(conn), do: conn |> GenServer.call(:info)
+  def info(conn, :full), do: conn |> GenServer.call({:info, :full})
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def get(conn_pid, path, body \\ "", headers \\ []) when is_binary(path) and is_binary(body) do
-    conn_pid |> request({:GET, path, body, headers})
+  def get(conn, path, body \\ "", headers \\ []) when is_binary(path) and is_binary(body) do
+    conn |> request({:GET, path, body, headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def post(conn_pid, path, body, headers \\ []) when is_binary(path) and is_binary(body) do
-    conn_pid |> request({:POST, path, body, headers})
+  def post(conn, path, body, headers \\ []) when is_binary(path) and is_binary(body) do
+    conn |> request({:POST, path, body, headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def request(conn_pid, {method, path}), do: request(conn_pid, {method, path, "", []})
-  def request(conn_pid, {method, path, body}), do: request(conn_pid, {method, path, body, []})
+  def request(conn, {method, path}), do: request(conn, {method, path, "", []})
+  def request(conn, {method, path, body}), do: request(conn, {method, path, body, []})
 
-  def request(conn_pid, {method, path, body, headers} = params)
+  def request(conn, {method, path, body, headers} = params)
       when is_atom(method) and is_binary(path) and is_binary(body) and is_list(headers) do
-    conn_pid |> GenServer.call({:request, params})
+    conn |> GenServer.call({:request, params})
   end
 
-  def request(_conn_pid, _params), do: {:error, "Invalid request parameters"}
+  def request(_conn, _params), do: {:error, "Invalid request parameters"}
 
   ## ===============================================================================================
   ##

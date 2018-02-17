@@ -79,8 +79,8 @@ defmodule SrpcClient.ConnectionServer do
     |> case do
          {:ok, conn} ->
            {:reply, conn, state |> bump_conn_num(:user)}
-         reply ->
-           {:reply, reply, state}
+         no_conn ->
+           {:reply, no_conn, state}
        end
   end
 
@@ -95,8 +95,8 @@ defmodule SrpcClient.ConnectionServer do
     |> case do
          {:ok, conn} ->
            {:reply, conn, state |> bump_conn_num(:user)}
-         reply ->
-           {:reply, reply, state}
+         no_conn ->
+           {:reply, no_conn, state}
        end
   end
 
