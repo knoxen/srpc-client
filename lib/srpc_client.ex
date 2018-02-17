@@ -10,6 +10,11 @@ defmodule SrpcClient do
   def start(_type, []) do
     Process.register(self(), __MODULE__)
 
+    :ok =
+      required_opt(:srpc_file)
+      |> File.read!()
+      |> :srpc_lib.init()    
+
     children = [ConnectionServer, ConnectionSupervisor]
 
     opts = [
@@ -87,4 +92,20 @@ defmodule SrpcClient do
   end
 
   def request(_conn_pid, _params), do: {:error, "Invalid request parameters"}
+
+  ## ===============================================================================================
+  ##
+  ##  Private
+  ##
+  ## ===============================================================================================
+  ## -----------------------------------------------------------------------------------------------
+  ##  Return require configuration option or raise a fuss
+  ## -----------------------------------------------------------------------------------------------
+  defp required_opt(opt) do
+    unless value = Application.get_env(:srpc_client, opt) do
+      raise SrpcClient.Error, message: "SrpcClient: Required configuration for #{opt} missing"
+    end
+    value
+  end
+  
 end
