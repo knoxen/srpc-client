@@ -58,20 +58,14 @@ defmodule SrpcClient.ConnectionServer do
   def handle_call(:lib, _from, state) do
     state
     |> conn_info(:lib)
-    |> KeyAgreement.lib()
+    |> KeyAgreement.lib
+    |> conn_reply
     |> case do
-      {:ok, conn_pid} ->
-        {:reply, start_conn(conn_pid), state |> bump_conn_num(:lib_conn_num)}
-
-      {:invalid, 503} ->
-        {:reply, connection_refused(), state}
-
-      {:error, %HTTPoison.Error{reason: :econnrefused}} ->
-        {:reply, connection_refused(), state}
-
-      error ->
-        {:reply, error, state}
-    end
+         {:ok, conn} ->
+           {:reply, conn, state |> bump_conn_num(:lib)}
+         reply ->
+           {:reply, reply, state}
+       end
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -81,22 +75,13 @@ defmodule SrpcClient.ConnectionServer do
     state
     |> conn_info(:user)
     |> KeyAgreement.lib_user(id, password)
+    |> conn_reply
     |> case do
-      {:ok, conn_pid} ->
-        {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}
-
-      {:invalid, 503} ->
-        {:reply, connection_refused(), state}
-
-      {:invalid, _} ->
-        {:reply, {:error, "Invalid user login"}, state}
-
-      {:error, %HTTPoison.Error{reason: :econnrefused}} ->
-        {:reply, connection_refused(), state}
-
-      error ->
-        {:reply, error, state}
-    end
+         {:ok, conn} ->
+           {:reply, conn, state |> bump_conn_num(:user)}
+         reply ->
+           {:reply, reply, state}
+       end
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -106,22 +91,13 @@ defmodule SrpcClient.ConnectionServer do
     state
     |> conn_info(:user)
     |> KeyAgreement.user(conn, id, password)
+    |> conn_reply
     |> case do
-      {:ok, conn_pid} ->
-        {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}
-
-      {:invalid, 503} ->
-        {:reply, connection_refused(), state}
-
-      {:invalid, _} ->
-        {:reply, {:error, "Invalid user login"}, state}
-
-      {:error, %HTTPoison.Error{reason: :econnrefused}} ->
-        {:reply, connection_refused(), state}
-
-      error ->
-        {:reply, error, state}
-    end
+         {:ok, conn} ->
+           {:reply, conn, state |> bump_conn_num(:user)}
+         reply ->
+           {:reply, reply, state}
+       end
   end
 
   ## ===============================================================================================
@@ -151,10 +127,24 @@ defmodule SrpcClient.ConnectionServer do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp start_conn(conn_pid) do
-    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn_pid})
+  defp start_conn(conn_info) do
+    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn_info})
   end
 
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
+  defp conn_reply({:ok, conn_info}), do: {:ok, start_conn(conn_info)}
+
+  defp conn_reply({:invalid, 503}), do: connection_refused()
+  defp conn_reply({:invalid, _}), do: "Invalid user login"
+
+  defp conn_reply({:error, %HTTPoison.Error{reason: :econnrefused}}), do: connection_refused()
+  defp conn_reply(error), do: error
+  
+  ## -----------------------------------------------------------------------------------------------
+  ## -----------------------------------------------------------------------------------------------
+  defp bump_conn_num(state, :lib),  do: bump_conn_num(state, :lib_conn_num)
+  defp bump_conn_num(state, :user), do: bump_conn_num(state, :user_conn_num)
   defp bump_conn_num(state, conn_num) do
     state |> Keyword.replace!(conn_num, state[conn_num] + 1)
   end

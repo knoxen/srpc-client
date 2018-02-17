@@ -17,5 +17,4 @@ defmodule SrpcClient.KeyAgreement do
     |> Map.merge(conn_info)
     |> UserKeyAgreement.connect(user_id, password)
   end
-  
 end
