@@ -11,4 +11,11 @@ defmodule SrpcClient.KeyAgreement do
     |> UserKeyAgreement.connect(user_id, password)
   end
 
+  def user(conn_info, conn, user_id, password) do
+    conn
+    |> GenServer.call({:info, :full})
+    |> Map.merge(conn_info)
+    |> UserKeyAgreement.connect(user_id, password)
+  end
+  
 end

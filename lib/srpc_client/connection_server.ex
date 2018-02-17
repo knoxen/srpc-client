@@ -75,12 +75,37 @@ defmodule SrpcClient.ConnectionServer do
   end
 
   ## -----------------------------------------------------------------------------------------------
-  ##  Create user connection
+  ##  Create user connection using auto-generated lib connection
   ## -----------------------------------------------------------------------------------------------
   def handle_call({:lib_user, id, password}, _from, state) do
     state
     |> conn_info(:user)
     |> KeyAgreement.lib_user(id, password)
+    |> case do
+      {:ok, conn_pid} ->
+        {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}
+
+      {:invalid, 503} ->
+        {:reply, connection_refused(), state}
+
+      {:invalid, _} ->
+        {:reply, {:error, "Invalid user login"}, state}
+
+      {:error, %HTTPoison.Error{reason: :econnrefused}} ->
+        {:reply, connection_refused(), state}
+
+      error ->
+        {:reply, error, state}
+    end
+  end
+
+  ## -----------------------------------------------------------------------------------------------
+  ##  Create user connection using existing connection
+  ## -----------------------------------------------------------------------------------------------
+  def handle_call({:user, conn, id, password}, _from, state) do
+    state
+    |> conn_info(:user)
+    |> KeyAgreement.user(conn, id, password)
     |> case do
       {:ok, conn_pid} ->
         {:reply, start_conn(conn_pid), state |> bump_conn_num(:user_conn_num)}

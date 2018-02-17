@@ -17,13 +17,16 @@ defmodule SrpcClient.UserKeyAgreement do
   ## -----------------------------------------------------------------------------------------------
   ##   Connect
   ## -----------------------------------------------------------------------------------------------
-  def connect({:ok, conn_info}, user_id, password) do
+  def connect({:ok, conn_info}, user_id, password), do: connect(conn_info, user_id, password)
+
+  def connect({:error, _} = error, _user_id, _password), do: error
+
+  def connect(conn_info, user_id, password) do
     conn_info
     |> exchange(user_id, password)
     |> confirm
   end
 
-  def connect(error, _user_id, _password), do: error
 
   ## -----------------------------------------------------------------------------------------------
   ##   User key exchange
