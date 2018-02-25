@@ -2,9 +2,9 @@ defmodule SrpcClient.Connection do
   @moduledoc """
   Documentation for SrpcClient.Connection
   """
-
   alias :srpc_lib, as: SrpcLib
   alias SrpcClient.{Action, Msg, Request, Util}
+  alias SrpcClient.Conn.Info
 
   @refresh_salt_size 16
 
@@ -23,7 +23,7 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##  Start client
   ## -----------------------------------------------------------------------------------------------
-  def start_link(conn), do: GenServer.start_link(__MODULE__, conn, name: conn[:name])
+  def start_link(conn), do: GenServer.start_link(__MODULE__, conn, name: conn.name)
 
   ## -----------------------------------------------------------------------------------------------
   ##  Init client
@@ -50,11 +50,11 @@ defmodule SrpcClient.Connection do
     now = mono_time()
 
     {:reply,
-     %{
-       name: conn[:name],
-       created: now - conn[:created],
-       accessed: now - conn[:accessed],
-       keyed: now - conn[:keyed]
+     %Info{
+       name: conn.name,
+       created: now - conn.created,
+       accessed: now - conn.accessed,
+       keyed: now - conn.keyed
      }, conn}
   end
 

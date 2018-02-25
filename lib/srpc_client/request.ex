@@ -81,8 +81,7 @@ defmodule SrpcClient.Request do
   end
 
   defp srpc_packet(conn, data) do
-    conn_id = conn[:conn_id]
-    conn_id_size = :erlang.byte_size(conn_id)
-    <<SrpcMsg.app(), conn_id_size, conn_id::binary, data::binary>>
+    conn_id_size = :erlang.byte_size(conn.conn_id)
+    <<SrpcMsg.app(), conn_id_size, conn.conn_id::binary, data::binary>>
   end
 end

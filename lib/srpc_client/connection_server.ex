@@ -5,7 +5,7 @@ defmodule SrpcClient.ConnectionServer do
 
   # alias :srpc_lib, as: SrpcLib
 
-  alias SrpcClient.{Connection, ConnectionSupervisor, KeyAgreement, Util}
+  alias SrpcClient.{Conn, Connection, ConnectionSupervisor, KeyAgreement, Util}
 
   ## ===============================================================================================
   ##
@@ -57,15 +57,15 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:lib, _from, state) do
     state
-    |> conn_info(:lib)
+    |> conn_map(:lib)
     |> KeyAgreement.lib()
-    |> conn_reply
+    |> connection
     |> case do
       {:ok, conn} ->
         {:reply, conn, state |> bump_conn_num(:lib)}
 
-      reply ->
-        {:reply, reply, state}
+      error ->
+        {:reply, error, state}
     end
   end
 
@@ -74,9 +74,9 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   def handle_call({:lib_user, id, password}, _from, state) do
     state
-    |> conn_info(:user)
+    |> conn_map(:user)
     |> KeyAgreement.lib_user(id, password)
-    |> conn_reply
+    |> connection
     |> case do
       {:ok, conn} ->
         {:reply, conn, state |> bump_conn_num(:user)}
@@ -91,9 +91,9 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   def handle_call({:user, conn, id, password}, _from, state) do
     state
-    |> conn_info(:user)
+    |> conn_map(:user)
     |> KeyAgreement.user(conn, id, password)
-    |> conn_reply
+    |> connection
     |> case do
       {:ok, conn} ->
         {:reply, conn, state |> bump_conn_num(:user)}
@@ -110,16 +110,15 @@ defmodule SrpcClient.ConnectionServer do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp conn_info(state, type) do
-    conn_info = %{
+  defp conn_map(state, type) do
+    conn_map = %{
       type: type,
       name: conn_name(state, type),
       url: "http://#{state[:host]}:#{state[:port]}"
     }
-
     case state[:proxy] do
-      nil -> conn_info
-      proxy -> conn_info |> Map.put(:proxy, proxy)
+      nil -> conn_map
+      proxy -> conn_map |> Map.put(:proxy, proxy)
     end
   end
 
@@ -130,18 +129,15 @@ defmodule SrpcClient.ConnectionServer do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp start_conn(conn_info) do
-    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn_info})
+  defp connection({:ok, conn_map}) do
+    conn = struct(Conn, conn_map)
+    {:ok, DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn})}
   end
 
-  ## -----------------------------------------------------------------------------------------------
-  ## -----------------------------------------------------------------------------------------------
-  defp conn_reply({:ok, conn_info}), do: {:ok, start_conn(conn_info)}
+  defp connection({:invalid, 503}), do: Util.connection_refused()
+  defp connection({:invalid, reason}), do: "Invalid #{inspect(reason)}"
 
-  defp conn_reply({:invalid, 503}), do: Util.connection_refused()
-  defp conn_reply({:invalid, _}), do: "Invalid user login"
-
-  defp conn_reply(error), do: error
+  defp connection(error), do: error
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------

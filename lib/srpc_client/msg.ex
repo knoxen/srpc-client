@@ -21,7 +21,7 @@ defmodule SrpcClient.Msg do
   def wrap(conn), do: wrap(conn, <<>>)
 
   def wrap(conn, data) do
-    time = :erlang.system_time(:second) + conn[:time_offset]
+    time = :erlang.system_time(:second) + conn.time_offset
     time_data = <<time::size(@time_bits)>>
     nonce = :crypto.strong_rand_bytes(@nonce_size)
     nonce_data = <<@nonce_size, nonce::binary-size(@nonce_size)>>
