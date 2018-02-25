@@ -65,7 +65,7 @@ defmodule SrpcClient.Connection do
 
     response =
       conn
-      |> Util.required_opt(:srpc_poster).post(packet)
+      |> Util.required_opt(:srpc_transport).send(packet)
       |> case do
         {:ok, resp_packet} ->
           Request.unpack(conn, nonce, resp_packet)
