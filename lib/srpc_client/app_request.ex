@@ -11,8 +11,8 @@ defmodule SrpcClient.AppRequest do
   ##  Public
   ##
   ## ===============================================================================================
-  def post(conn_info, params) do
-    {nonce, packet} = package(conn_info, params)
+  def post(conn_info, srpc_request) do
+    {nonce, packet} = package(conn_info, srpc_request)
 
     case Util.post(conn_info, packet) do
       {:ok, encrypted_response} ->
@@ -23,10 +23,8 @@ defmodule SrpcClient.AppRequest do
     end
   end
 
-  defp package(conn_info, {method, path, body, headers}) do
-    req_info_data = req_info_data(method, path, headers, body)
-
-    case SrpcMsg.wrap_encrypt(conn_info, req_info_data) do
+  defp package(conn_info, srpc_request) do
+    case SrpcMsg.wrap_encrypt(conn_info, req_info_data(srpc_request)) do
       {:error, _} = error ->
         error
 
@@ -71,19 +69,20 @@ defmodule SrpcClient.AppRequest do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp req_info_data(method, path, headers, body) do
-    uri = URI.parse("http://host#{path}")
+  defp req_info_data(srpc_request) do
+    
+    uri = URI.parse("http://host#{srpc_request.path}")
 
     data =
       Poison.encode!(%{
-        method: method,
+        method: srpc_request.method,
         path: uri.path || "",
         query: uri.query || "",
-        headers: headers
+        headers: srpc_request.headers
       })
 
     data_size = :erlang.byte_size(data)
-    <<data_size::size(16), data::binary, body::binary>>
+    <<data_size::size(16), data::binary, srpc_request.body::binary>>
   end
 
   defp srpc_packet(conn_info, data) do

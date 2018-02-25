@@ -76,26 +76,18 @@ defmodule SrpcClient do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def get(conn, path, body \\ "", headers \\ []) when is_binary(path) and is_binary(body) do
-    conn |> request({:GET, path, body, headers})
+    conn |> request(%SrpcClient.Request{method: :GET, path: path, body: body, headers: headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def post(conn, path, body, headers \\ []) when is_binary(path) and is_binary(body) do
-    conn |> request({:POST, path, body, headers})
+    conn |> request(%SrpcClient.Request{method: :POST, path: path, body: body, headers: headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def request(conn, {method, path}), do: request(conn, {method, path, "", []})
-  def request(conn, {method, path, body}), do: request(conn, {method, path, body, []})
-
-  def request(conn, {method, path, body, headers} = params)
-      when is_atom(method) and is_binary(path) and is_binary(body) and is_list(headers) do
-    conn |> GenServer.call({:request, params})
-  end
-
-  def request(_conn, _params), do: {:error, "Invalid request parameters"}
+  def request(conn, srpc_request), do: conn |> GenServer.call({:request, srpc_request})
 
   ## ===============================================================================================
   ##
