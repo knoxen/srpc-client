@@ -19,7 +19,6 @@ defmodule SrpcClient.Conn do
   @type accessed :: integer
   @type keyed :: integer
   @type time_offset :: integer
-  @type proxy :: binary
 
   @type t :: %__MODULE__{
           type: type,
@@ -28,7 +27,7 @@ defmodule SrpcClient.Conn do
         }
 
   @enforce_keys [:type, :name, :url, :conn_id, :entity_id, :req_sym_key, :req_hmac_key,  :resp_sym_key, :resp_hmac_key]
-  defstruct @enforce_keys ++ [sym_alg: :aes256, sha_alg: :sha256] ++ [:created, :accessed, :keyed, :time_offset, :proxy]
+  defstruct @enforce_keys ++ [sym_alg: :aes256, sha_alg: :sha256] ++ [:created, :accessed, :keyed, :time_offset]
 end
 
 defmodule SrpcClient.Conn.Info do

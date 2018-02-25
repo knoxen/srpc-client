@@ -37,14 +37,7 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   def init(args) do
     unless args[:host], do: raise("Missing config for server host")
-
-    opts =
-      case args[:proxy] do
-        nil -> []
-        proxy -> [proxy: proxy]
-      end
-
-    {:ok, [host: args[:host], port: args[:port] || 80, lib_conn_num: 1, user_conn_num: 1] ++ opts}
+    {:ok, [host: args[:host], port: args[:port] || 80, lib_conn_num: 1, user_conn_num: 1]}
   end
 
   ## ===============================================================================================
@@ -111,15 +104,11 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp conn_map(state, type) do
-    conn_map = %{
+    %{
       type: type,
       name: conn_name(state, type),
       url: "http://#{state[:host]}:#{state[:port]}"
     }
-    case state[:proxy] do
-      nil -> conn_map
-      proxy -> conn_map |> Map.put(:proxy, proxy)
-    end
   end
 
   ## -----------------------------------------------------------------------------------------------
