@@ -29,7 +29,6 @@ defmodule SrpcClient.Mixfile do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
       {:poison, "~> 3.1"}
     ] ++ deps(Mix.env())
   end

@@ -2,9 +2,7 @@ defmodule SrpcClient.Action do
   alias :srpc_lib, as: SrpcLib
 
   require SrpcClient.Msg
-  alias SrpcClient.Msg, as: SrpcMsg
-
-  alias SrpcClient.Util
+  alias SrpcClient.{Msg, Util}
 
   @lib_confirm 0x01
   @lib_user_exchange 0x10
@@ -19,23 +17,25 @@ defmodule SrpcClient.Action do
   # @refresh_salt_size 16
 
   def lib_exchange(conn_info, data) do
-    Util.post(conn_info, <<SrpcMsg.lib_exchange(), data::binary>>)
+    poster().post(conn_info, <<Msg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn_info, {:ok, packet}), do: send(conn_info, @lib_confirm, packet)
+  def lib_confirm(conn_info, {:ok, packet}), do: action(conn_info, @lib_confirm, packet)
   def lib_confirm(_conn_info, error), do: error
 
-  def lib_user_exchange(conn_info, {:ok, packet}), do: send(conn_info, @lib_user_exchange, packet)
+  def lib_user_exchange(conn_info, {:ok, packet}),
+    do: action(conn_info, @lib_user_exchange, packet)
+
   def lib_user_exchange(_conn_info, error), do: error
 
-  def lib_user_confirm(conn_info, {:ok, packet}), do: send(conn_info, @lib_user_confirm, packet)
+  def lib_user_confirm(conn_info, {:ok, packet}), do: action(conn_info, @lib_user_confirm, packet)
   def lib_user_confirm(_conn_info, error), do: error
 
-  def register(conn_info, packet), do: send(conn_info, @registration, packet)
+  def register(conn_info, packet), do: action(conn_info, @registration, packet)
 
-  def refresh(conn_info, packet), do: send(conn_info, @refresh, packet)
+  def refresh(conn_info, packet), do: action(conn_info, @refresh, packet)
 
-  def close(conn_info, packet), do: send(conn_info, @close, packet)
+  def close(conn_info, packet), do: action(conn_info, @close, packet)
 
   ## ===============================================================================================
   ##
@@ -44,7 +44,7 @@ defmodule SrpcClient.Action do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp send(conn_info, action, data, encrypt \\ false) do
+  defp action(conn_info, action, data, encrypt \\ false) do
     conn_info
     |> encrypt(data, encrypt)
     |> package(action, conn_info[:conn_id])
@@ -56,11 +56,13 @@ defmodule SrpcClient.Action do
 
   defp package({:ok, data}, action, conn_id) do
     id_size = :erlang.byte_size(conn_id)
-    {:ok, <<SrpcMsg.action(), id_size::8, conn_id::binary, action, data::binary>>}
+    {:ok, <<Msg.action(), id_size::8, conn_id::binary, action, data::binary>>}
   end
 
   defp package(error, _action, _conn_info), do: error
 
-  defp post({:ok, packet}, conn_info), do: Util.post(conn_info, packet)
+  defp post({:ok, packet}, conn_info), do: poster().post(conn_info, packet)
   defp post(error, _conn_info), do: error
+
+  defp poster, do: Util.required_opt(:srpc_poster)
 end

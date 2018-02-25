@@ -4,10 +4,7 @@ defmodule SrpcClient.Connection do
   """
 
   alias :srpc_lib, as: SrpcLib
-
-  alias SrpcClient.Msg, as: SrpcMsg
-  alias SrpcClient.Action, as: SrpcAction
-  alias SrpcClient.AppRequest
+  alias SrpcClient.{Action, Msg, Request, Util}
 
   @refresh_salt_size 16
 
@@ -63,8 +60,21 @@ defmodule SrpcClient.Connection do
 
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
-  def handle_call({:request, srpc_request}, _from, conn) do
-    {:reply, AppRequest.post(conn, srpc_request), conn |> accessed(mono_time())}
+  def handle_call({:srpc, request}, _from, conn) do
+    {nonce, packet} = Request.pack(conn, request)
+
+    response =
+      conn
+      |> Util.required_opt(:srpc_poster).post(packet)
+      |> case do
+        {:ok, resp_packet} ->
+          Request.unpack(conn, nonce, resp_packet)
+
+        error ->
+          error
+      end
+
+    {:reply, response, conn |> accessed(mono_time())}
   end
 
   def handle_call(:refresh, _from, conn), do: refresh(conn)
@@ -83,18 +93,18 @@ defmodule SrpcClient.Connection do
     salt = :crypto.strong_rand_bytes(@refresh_salt_size)
 
     conn
-    |> SrpcMsg.wrap_encrypt(salt)
+    |> Msg.wrap_encrypt(salt)
     |> refresh(salt, conn)
   end
 
   defp refresh({:error, _} = error, _salt, _conn), do: error
 
   defp refresh({nonce, packet}, salt, conn) do
-    case SrpcAction.refresh(conn, packet) do
+    case Action.refresh(conn, packet) do
       {:ok, encrypted_response} ->
         case SrpcLib.refresh_keys(conn, salt) do
           {:ok, conn} ->
-            case SrpcMsg.decrypt_unwrap(conn, nonce, encrypted_response) do
+            case Msg.decrypt_unwrap(conn, nonce, encrypted_response) do
               {:ok, _data} ->
                 {:reply, :ok, conn |> keyed(mono_time())}
 
@@ -116,16 +126,16 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   defp close(conn) do
     conn
-    |> SrpcMsg.wrap_encrypt()
+    |> Msg.wrap_encrypt()
     |> close(conn)
   end
 
   defp close({:error, _} = error, _conn), do: error
 
   defp close({nonce, packet}, conn) do
-    case SrpcAction.close(conn, packet) do
+    case Action.close(conn, packet) do
       {:ok, encrypted_response} ->
-        case SrpcMsg.decrypt_unwrap(conn, nonce, encrypted_response) do
+        case Msg.decrypt_unwrap(conn, nonce, encrypted_response) do
           {:ok, _data} ->
             {:reply, :ok, conn}
 

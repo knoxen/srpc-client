@@ -1,18 +1,29 @@
 defmodule SrpcClient.Util do
-  def post(%{:proxy => proxy} = conn, body), do: post(conn, body, proxy: proxy)
-  def post(conn, body), do: post(conn, body, [])
+  ## -----------------------------------------------------------------------------------------------
+  ##  Error term with string representation of the url and optional proxy in use.
+  ## -----------------------------------------------------------------------------------------------
+  def connection_refused do
+    server = Application.get_env(:srpc_client, :server)
 
-  def post(conn, body, opts) do
-    case HTTPoison.post(conn[:url], body, [], opts) do
-      {:ok, %{:body => body, :status_code => 200}} ->
-        {:ok, body}
+    proxy =
+      if server[:proxy] do
+        "via proxy #{server[:proxy]}"
+      else
+        ""
+      end
 
-      {:ok, %{:status_code => status_code}} ->
-        {:invalid, status_code}
+    {:error, "Connection refused: http://#{server[:host]}:#{server[:port]} #{proxy}"}
+  end
 
-      error ->
-        error
+  ## -----------------------------------------------------------------------------------------------
+  ##  Return require configuration option or raise a fuss
+  ## -----------------------------------------------------------------------------------------------
+  def required_opt(opt) when is_atom(opt) do
+    unless value = Application.get_env(:srpc_client, opt) do
+      raise SrpcClient.Error, message: "SrpcClient: Required configuration for #{opt} missing"
     end
+
+    value
   end
 
   def tag({:error, reason}, msg) do

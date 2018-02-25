@@ -5,7 +5,7 @@ defmodule SrpcClient.ConnectionServer do
 
   # alias :srpc_lib, as: SrpcLib
 
-  alias SrpcClient.{ConnectionSupervisor, Connection, KeyAgreement}
+  alias SrpcClient.{Connection, ConnectionSupervisor, KeyAgreement, Util}
 
   ## ===============================================================================================
   ##
@@ -58,14 +58,15 @@ defmodule SrpcClient.ConnectionServer do
   def handle_call(:lib, _from, state) do
     state
     |> conn_info(:lib)
-    |> KeyAgreement.lib
+    |> KeyAgreement.lib()
     |> conn_reply
     |> case do
-         {:ok, conn} ->
-           {:reply, conn, state |> bump_conn_num(:lib)}
-         reply ->
-           {:reply, reply, state}
-       end
+      {:ok, conn} ->
+        {:reply, conn, state |> bump_conn_num(:lib)}
+
+      reply ->
+        {:reply, reply, state}
+    end
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -77,11 +78,12 @@ defmodule SrpcClient.ConnectionServer do
     |> KeyAgreement.lib_user(id, password)
     |> conn_reply
     |> case do
-         {:ok, conn} ->
-           {:reply, conn, state |> bump_conn_num(:user)}
-         no_conn ->
-           {:reply, no_conn, state}
-       end
+      {:ok, conn} ->
+        {:reply, conn, state |> bump_conn_num(:user)}
+
+      no_conn ->
+        {:reply, no_conn, state}
+    end
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -93,11 +95,12 @@ defmodule SrpcClient.ConnectionServer do
     |> KeyAgreement.user(conn, id, password)
     |> conn_reply
     |> case do
-         {:ok, conn} ->
-           {:reply, conn, state |> bump_conn_num(:user)}
-         no_conn ->
-           {:reply, no_conn, state}
-       end
+      {:ok, conn} ->
+        {:reply, conn, state |> bump_conn_num(:user)}
+
+      no_conn ->
+        {:reply, no_conn, state}
+    end
   end
 
   ## ===============================================================================================
@@ -135,33 +138,17 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   defp conn_reply({:ok, conn_info}), do: {:ok, start_conn(conn_info)}
 
-  defp conn_reply({:invalid, 503}), do: connection_refused()
+  defp conn_reply({:invalid, 503}), do: Util.connection_refused()
   defp conn_reply({:invalid, _}), do: "Invalid user login"
 
-  defp conn_reply({:error, %HTTPoison.Error{reason: :econnrefused}}), do: connection_refused()
   defp conn_reply(error), do: error
-  
+
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp bump_conn_num(state, :lib),  do: bump_conn_num(state, :lib_conn_num)
+  defp bump_conn_num(state, :lib), do: bump_conn_num(state, :lib_conn_num)
   defp bump_conn_num(state, :user), do: bump_conn_num(state, :user_conn_num)
+
   defp bump_conn_num(state, conn_num) do
     state |> Keyword.replace!(conn_num, state[conn_num] + 1)
-  end
-
-  ## -----------------------------------------------------------------------------------------------
-  ##  String representation of the url and optional proxy in use.
-  ## -----------------------------------------------------------------------------------------------
-  defp connection_refused do
-    server = Application.get_env(:srpc_client, :server)
-
-    proxy =
-      if server[:proxy] do
-        "via proxy #{server[:proxy]}"
-      else
-        ""
-      end
-
-    {:error, "Connection refused: http://#{server[:host]}:#{server[:port]} #{proxy}"}
   end
 end

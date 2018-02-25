@@ -3,7 +3,7 @@ defmodule SrpcClient do
   Documentation for SrpcClient.
   """
 
-  alias SrpcClient.{ConnectionServer, ConnectionSupervisor, Registration}
+  alias SrpcClient.{ConnectionServer, ConnectionSupervisor, Registration, Util}
 
   use Application
 
@@ -11,7 +11,7 @@ defmodule SrpcClient do
     Process.register(self(), __MODULE__)
 
     :ok =
-      required_opt(:srpc_file)
+      Util.required_opt(:srpc_file)
       |> File.read!()
       |> :srpc_lib.init()
 
@@ -87,21 +87,5 @@ defmodule SrpcClient do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def request(conn, srpc_request), do: conn |> GenServer.call({:request, srpc_request})
-
-  ## ===============================================================================================
-  ##
-  ##  Private
-  ##
-  ## ===============================================================================================
-  ## -----------------------------------------------------------------------------------------------
-  ##  Return require configuration option or raise a fuss
-  ## -----------------------------------------------------------------------------------------------
-  defp required_opt(opt) do
-    unless value = Application.get_env(:srpc_client, opt) do
-      raise SrpcClient.Error, message: "SrpcClient: Required configuration for #{opt} missing"
-    end
-
-    value
-  end
+  def request(conn, request), do: conn |> GenServer.call({:srpc, request})
 end
