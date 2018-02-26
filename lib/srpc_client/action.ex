@@ -17,7 +17,7 @@ defmodule SrpcClient.Action do
   # @refresh_salt_size 16
 
   def lib_exchange(conn_info, data) do
-    transport().send(conn_info, <<Msg.lib_exchange(), data::binary>>)
+    transport().srpc(conn_info, <<Msg.lib_exchange(), data::binary>>)
   end
 
   def lib_confirm(conn_info, {:ok, packet}), do: action(conn_info, @lib_confirm, packet)
@@ -61,7 +61,7 @@ defmodule SrpcClient.Action do
 
   defp package(error, _action, _conn_info), do: error
 
-  defp post({:ok, packet}, conn_info), do: transport().send(conn_info, packet)
+  defp post({:ok, packet}, conn_info), do: transport().srpc(conn_info, packet)
   defp post(error, _conn_info), do: error
 
   defp transport, do: Util.required_opt(:srpc_transport)

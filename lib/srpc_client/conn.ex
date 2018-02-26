@@ -26,8 +26,19 @@ defmodule SrpcClient.Conn do
           url: url
         }
 
-  @enforce_keys [:type, :name, :url, :conn_id, :entity_id, :req_sym_key, :req_hmac_key,  :resp_sym_key, :resp_hmac_key]
-  defstruct @enforce_keys ++ [sym_alg: :aes256, sha_alg: :sha256] ++ [:created, :accessed, :keyed, :time_offset]
+  @enforce_keys [
+    :type,
+    :name,
+    :url,
+    :conn_id,
+    :entity_id,
+    :req_sym_key,
+    :req_hmac_key,
+    :resp_sym_key,
+    :resp_hmac_key
+  ]
+  defstruct @enforce_keys ++
+              [sym_alg: :aes256, sha_alg: :sha256] ++ [:created, :accessed, :keyed, :time_offset]
 end
 
 defmodule SrpcClient.Conn.Info do

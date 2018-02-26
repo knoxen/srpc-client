@@ -60,21 +60,9 @@ defmodule SrpcClient.Connection do
 
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
-  def handle_call({:srpc, request}, _from, conn) do
-    {nonce, packet} = Request.pack(conn, request)
-
-    response =
-      conn
-      |> Util.required_opt(:srpc_transport).send(packet)
-      |> case do
-        {:ok, resp_packet} ->
-          Request.unpack(conn, nonce, resp_packet)
-
-        error ->
-          error
-      end
-
-    {:reply, response, conn |> accessed(mono_time())}
+  def handle_call({:app, request}, _from, conn) do
+    transport = Util.required_opt(:srpc_transport)
+    {:reply, conn |> transport.app(request), conn |> accessed(mono_time())}
   end
 
   def handle_call(:refresh, _from, conn), do: refresh(conn)

@@ -1,7 +1,6 @@
 defmodule SrpcClient.LibKeyAgreement do
   alias :srpc_lib, as: SrpcLib
-  alias SrpcClient.Msg, as: SrpcMsg
-  alias SrpcClient.Action, as: SrpcAction
+  alias SrpcClient.{Action, Msg}
 
   ## CxTBD Optional data processing
 
@@ -22,7 +21,7 @@ defmodule SrpcClient.LibKeyAgreement do
   defp exchange(conn_info) do
     {client_keys, request} = SrpcLib.create_lib_key_exchange_request(SrpcLib.srpc_id())
 
-    case SrpcAction.lib_exchange(conn_info, request) do
+    case Action.lib_exchange(conn_info, request) do
       {:ok, response} ->
         case SrpcLib.process_lib_key_exchange_response(client_keys, response) do
           {:ok, exch_conn_info} ->
@@ -41,18 +40,18 @@ defmodule SrpcClient.LibKeyAgreement do
   ##   Lib key confirm
   ## -----------------------------------------------------------------------------------------------
   defp confirm({:ok, conn_info}) do
-    {nonce, client_data} = SrpcMsg.wrap(conn_info)
+    {nonce, client_data} = Msg.wrap(conn_info)
     confirm_request = SrpcLib.create_lib_key_confirm_request(conn_info, client_data)
 
     start_time = :erlang.system_time(:seconds)
 
-    case SrpcAction.lib_confirm(conn_info, confirm_request) do
+    case Action.lib_confirm(conn_info, confirm_request) do
       {:ok, encrypted_response} ->
         delta = :erlang.system_time(:seconds) - start_time
 
         case SrpcLib.process_lib_key_confirm_response(conn_info, encrypted_response) do
           {:ok, conn_info, confirm_data} ->
-            case SrpcMsg.unwrap(nonce, confirm_data, true) do
+            case Msg.unwrap(nonce, confirm_data, true) do
               {:ok, _data, time} ->
                 time_offset = time - :erlang.system_time(:seconds) - trunc(delta / 2)
 
