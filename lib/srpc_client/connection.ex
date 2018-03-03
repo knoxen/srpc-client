@@ -5,6 +5,7 @@ defmodule SrpcClient.Connection do
   alias :srpc_lib, as: SrpcLib
   alias SrpcClient.{Action, Msg, Request, Util}
   alias SrpcClient.Conn.Info
+  alias SrpcClient.TransportDelegate, as: Transport
 
   @refresh_salt_size 16
 
@@ -61,8 +62,7 @@ defmodule SrpcClient.Connection do
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
   def handle_call({:app, request}, _from, conn) do
-    transport = Util.required_opt(:srpc_transport)
-    {:reply, conn |> transport.app(request), conn |> accessed(mono_time())}
+    {:reply, conn |> Transport.app(request), conn |> accessed(mono_time())}
   end
 
   def handle_call(:refresh, _from, conn), do: refresh(conn)

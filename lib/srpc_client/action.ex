@@ -3,6 +3,7 @@ defmodule SrpcClient.Action do
 
   require SrpcClient.Msg
   alias SrpcClient.{Msg, Util}
+  alias SrpcClient.TransportDelegate, as: Transport
 
   @lib_confirm 0x01
   @lib_user_exchange 0x10
@@ -16,8 +17,8 @@ defmodule SrpcClient.Action do
 
   # @refresh_salt_size 16
 
-  def lib_exchange(conn_info, data) do
-    transport().srpc(conn_info, <<Msg.lib_exchange(), data::binary>>)
+  def lib_exchange(conn, data) do
+    Transport.srpc(conn, <<Msg.lib_exchange(), data::binary>>)
   end
 
   def lib_confirm(conn_info, {:ok, packet}), do: action(conn_info, @lib_confirm, packet)
@@ -61,8 +62,5 @@ defmodule SrpcClient.Action do
 
   defp package(error, _action, _conn_info), do: error
 
-  defp post({:ok, packet}, conn_info), do: transport().srpc(conn_info, packet)
-  defp post(error, _conn_info), do: error
-
-  defp transport, do: Util.required_opt(:srpc_transport)
+  defp post({:ok, packet}, conn), do: Transport.srpc(conn, packet)
 end

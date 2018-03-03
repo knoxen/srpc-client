@@ -6,6 +6,7 @@ defmodule SrpcClient.ConnectionServer do
   # alias :srpc_lib, as: SrpcLib
 
   alias SrpcClient.{Conn, Connection, ConnectionSupervisor, KeyAgreement, Util}
+  alias SrpcClient.TransportDelegate, as: Transport
 
   ## ===============================================================================================
   ##
@@ -123,7 +124,7 @@ defmodule SrpcClient.ConnectionServer do
     {:ok, DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn})}
   end
 
-  defp connection({:invalid, 503}), do: Util.connection_refused()
+  defp connection({:invalid, 503}), do: Transport.refused()
   defp connection({:invalid, reason}), do: "Invalid #{inspect(reason)}"
 
   defp connection(error), do: error
