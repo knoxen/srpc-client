@@ -38,6 +38,9 @@ defmodule SrpcClient.Connection do
      |> keyed()}
   end
 
+  def old?, do: GenServer.call(__MODULE__, :old?)
+  def tired?, do: GenServer.call(__MODULE__, :tired?)
+
   ## ===============================================================================================
   ##
   ##  GenServer calls
@@ -64,7 +67,9 @@ defmodule SrpcClient.Connection do
     {:reply, conn |> Transport.app(request), conn |> accessed()}
   end
 
-  def handle_call(:fresh_conn, _from, conn), do: fresh_conn(conn)
+  def handle_call(:old?, _from, conn), do: {:reply, old_conn?(conn), conn}
+
+  def handle_call(:tired?, _from, conn), do: {:reply, tired_conn?(conn), conn}
 
   def handle_call(:refresh, _from, conn), do: refresh(conn)
 
@@ -111,31 +116,19 @@ defmodule SrpcClient.Connection do
   end
 
   ## -----------------------------------------------------------------------------------------------
-  ##  Ensure conn both fresh and of limited use
+  ##  
   ## -----------------------------------------------------------------------------------------------
-  defp fresh_conn(conn) do
-    fresh_conn =
-      conn
-      |> key_refresh(Opt.key_refresh())
-      |> key_limit(Opt.key_limit())
+  defp old_conn?(conn), do: old_conn?(conn, Opt.key_refresh())
 
-    {:reply, self(), fresh_conn}
-  end
+  defp old_conn?(_conn, 0), do: false
+  defp old_conn?(conn, refresh), do: refresh < mono_time() - conn.keyed
 
-  defp key_refresh(conn, 0) do
-    conn
-  end
+  defp tired_conn?(conn), do: tired_conn?(conn, Opt.key_limit())
 
-  defp key_refresh(conn, refresh) do
-    conn
-  end
+  defp tired_conn?(_conn, 0), do: false
 
-  defp key_limit(conn, 0) do
-    conn
-  end
-
-  defp key_limit(conn, key_limit) do
-    conn
+  defp tired_conn?(conn, key_limit) do
+    false
   end
 
   ## -----------------------------------------------------------------------------------------------
