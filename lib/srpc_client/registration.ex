@@ -2,7 +2,6 @@ defmodule SrpcClient.Registration do
   alias :srpc_lib, as: SrpcLib
   alias SrpcClient.Action, as: SrpcAction
   alias SrpcClient.Msg, as: SrpcMsg
-  alias SrpcClient.Util, as: Util
 
   @reg_create 1
   @reg_update 2
@@ -87,19 +86,23 @@ defmodule SrpcClient.Registration do
                     {:ok, {return_code, data}}
 
                   error ->
-                    Util.tag(error, "Registration unwrap")
+                    error_msg(error, "Registration unwrap")
                 end
 
               error ->
-                Util.tag(error, "Process registration response")
+                error_msg(error, "Process registration response")
             end
 
           error ->
-            Util.tag(error, "Registration action")
+            error_msg(error, "Registration action")
         end
 
       error ->
-        Util.tag(error, "Create registration request")
+        error_msg(error, "Create registration request")
     end
+  end
+
+  defp error_msg({:error, reason}, msg) do
+    <<msg::binary, " error: ", reason::binary>>
   end
 end

@@ -5,7 +5,7 @@ defmodule SrpcClient.ConnectionServer do
 
   # alias :srpc_lib, as: SrpcLib
 
-  alias SrpcClient.{Conn, Connection, ConnectionSupervisor, KeyAgreement, Util}
+  alias SrpcClient.{Conn, Connection, ConnectionSupervisor, KeyAgreement}
   alias SrpcClient.TransportDelegate, as: Transport
 
   ## ===============================================================================================

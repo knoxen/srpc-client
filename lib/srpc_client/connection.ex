@@ -3,7 +3,7 @@ defmodule SrpcClient.Connection do
   Documentation for SrpcClient.Connection
   """
   alias :srpc_lib, as: SrpcLib
-  alias SrpcClient.{Action, Msg, Request, Util}
+  alias SrpcClient.{Action, Msg}
   alias SrpcClient.Conn.Info
   alias SrpcClient.TransportDelegate, as: Transport
 

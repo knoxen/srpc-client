@@ -3,7 +3,7 @@ defmodule SrpcClient do
   Documentation for SrpcClient.
   """
 
-  alias SrpcClient.{ConnectionServer, ConnectionSupervisor, Registration, Util}
+  alias SrpcClient.{ConnectionServer, ConnectionSupervisor, Opt, Registration}
 
   use Application
 
@@ -11,7 +11,7 @@ defmodule SrpcClient do
     Process.register(self(), __MODULE__)
 
     :ok =
-      Util.required_opt(:srpc_file)
+      Opt.required(:srpc_file)
       |> File.read!()
       |> :srpc_lib.init()
 

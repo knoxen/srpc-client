@@ -2,7 +2,8 @@ defmodule SrpcClient.Action do
   alias :srpc_lib, as: SrpcLib
 
   require SrpcClient.Msg
-  alias SrpcClient.{Msg, Util}
+  alias SrpcClient.Msg
+
   alias SrpcClient.TransportDelegate, as: Transport
 
   @lib_confirm 0x01
