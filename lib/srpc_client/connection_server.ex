@@ -56,7 +56,7 @@ defmodule SrpcClient.ConnectionServer do
     |> connection
     |> case do
       {:ok, conn} ->
-        {:reply, conn, state |> bump_conn_num(:lib)}
+        {:reply, conn, state |> conn_num(:lib)}
 
       error ->
         {:reply, error, state}
@@ -73,7 +73,7 @@ defmodule SrpcClient.ConnectionServer do
     |> connection
     |> case do
       {:ok, conn} ->
-        {:reply, conn, state |> bump_conn_num(:user)}
+        {:reply, conn, state |> conn_num(:user)}
 
       no_conn ->
         {:reply, no_conn, state}
@@ -90,7 +90,7 @@ defmodule SrpcClient.ConnectionServer do
     |> connection
     |> case do
       {:ok, conn} ->
-        {:reply, conn, state |> bump_conn_num(:user)}
+        {:reply, conn, state |> conn_num(:user)}
 
       no_conn ->
         {:reply, no_conn, state}
@@ -120,6 +120,7 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp connection({:ok, conn_map}) do
+    
     conn = struct(Conn, conn_map)
     {:ok, DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn})}
   end
@@ -131,10 +132,10 @@ defmodule SrpcClient.ConnectionServer do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp bump_conn_num(state, :lib), do: bump_conn_num(state, :lib_conn_num)
-  defp bump_conn_num(state, :user), do: bump_conn_num(state, :user_conn_num)
+  defp conn_num(state, :lib), do: conn_num(state, :lib_conn_num)
+  defp conn_num(state, :user), do: conn_num(state, :user_conn_num)
 
-  defp bump_conn_num(state, conn_num) do
+  defp conn_num(state, conn_num) do
     state |> Keyword.replace!(conn_num, state[conn_num] + 1)
   end
 end
