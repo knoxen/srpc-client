@@ -11,7 +11,7 @@ defmodule SrpcClient do
     Process.register(self(), __MODULE__)
 
     :ok =
-      Opt.required(:srpc_file)
+      Opt.srpc_file()
       |> File.read!()
       |> :srpc_lib.init()
 
