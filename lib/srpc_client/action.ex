@@ -21,22 +21,21 @@ defmodule SrpcClient.Action do
     Transport.srpc(conn, <<Msg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn_info, {:ok, packet}), do: action(conn_info, @lib_confirm, packet)
-  def lib_confirm(_conn_info, error), do: error
+  def lib_confirm(conn, {:ok, packet}), do: action(conn, @lib_confirm, packet)
+  def lib_confirm(_conn, error), do: error
 
-  def lib_user_exchange(conn_info, {:ok, packet}),
-    do: action(conn_info, @lib_user_exchange, packet)
+  def lib_user_exchange(conn, {:ok, packet}), do: action(conn, @lib_user_exchange, packet)
 
-  def lib_user_exchange(_conn_info, error), do: error
+  def lib_user_exchange(_conn, error), do: error
 
-  def lib_user_confirm(conn_info, {:ok, packet}), do: action(conn_info, @lib_user_confirm, packet)
-  def lib_user_confirm(_conn_info, error), do: error
+  def lib_user_confirm(conn, {:ok, packet}), do: action(conn, @lib_user_confirm, packet)
+  def lib_user_confirm(_conn, error), do: error
 
-  def register(conn_info, packet), do: action(conn_info, @registration, packet)
+  def register(conn, packet), do: action(conn, @registration, packet)
 
-  def refresh(conn_info, packet), do: action(conn_info, @refresh, packet)
+  def refresh(conn, packet), do: action(conn, @refresh, packet)
 
-  def close(conn_info, packet), do: action(conn_info, @close, packet)
+  def close(conn, packet), do: action(conn, @close, packet)
 
   ## ===============================================================================================
   ##
@@ -45,22 +44,23 @@ defmodule SrpcClient.Action do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp action(conn_info, action, data, encrypt \\ false) do
-    conn_info
+  defp action(conn, action, data, encrypt \\ false) do
+    conn
     |> encrypt(data, encrypt)
-    |> package(action, conn_info[:conn_id])
-    |> post(conn_info)
+    |> package(action, conn.conn_id)
+    |> post(conn)
   end
 
-  defp encrypt(conn_info, data, true), do: SrpcLib.encrypt(:origin_requester, conn_info, data)
-  defp encrypt(_conn_info, data, false), do: {:ok, data}
+  defp encrypt(conn, data, true), do: SrpcLib.encrypt(:origin_requester, conn, data)
+  defp encrypt(_conn, data, false), do: {:ok, data}
 
   defp package({:ok, data}, action, conn_id) do
     id_size = :erlang.byte_size(conn_id)
     {:ok, <<Msg.action(), id_size::8, conn_id::binary, action, data::binary>>}
   end
 
-  defp package(error, _action, _conn_info), do: error
+  defp package(error, _action, _conn), do: error
 
   defp post({:ok, packet}, conn), do: Transport.srpc(conn, packet)
+  defp post(error, _conn), do: error
 end

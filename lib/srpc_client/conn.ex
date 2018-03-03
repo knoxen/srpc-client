@@ -9,9 +9,9 @@ defmodule SrpcClient.Conn do
   @type conn_id :: binary
   @type entity_id :: binary
   @type req_sym_key :: binary
-  @type req_hmac_key :: binary
+  @type req_mac_key :: binary
   @type resp_sym_key :: binary
-  @type resp_hmac_key :: binary
+  @type resp_mac_key :: binary
   @type sym_alg :: :aes256
   @type sha_alg :: :sha256
   # not required
@@ -33,9 +33,9 @@ defmodule SrpcClient.Conn do
     :conn_id,
     :entity_id,
     :req_sym_key,
-    :req_hmac_key,
+    :req_mac_key,
     :resp_sym_key,
-    :resp_hmac_key
+    :resp_mac_key
   ]
   defstruct @enforce_keys ++
               [sym_alg: :aes256, sha_alg: :sha256] ++ [:created, :accessed, :keyed, :time_offset]
