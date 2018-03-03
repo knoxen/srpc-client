@@ -48,41 +48,43 @@ defmodule SrpcClient do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def refresh(conn), do: conn |> GenServer.call(:refresh)
+  def refresh(conn_pid), do: conn_pid |> GenServer.call(:refresh)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def close(conn) do
-    result = conn |> GenServer.call(:close)
-    ConnectionSupervisor |> Supervisor.terminate_child(conn)
+  def close(conn_pid) do
+    result = conn_pid |> GenServer.call(:close)
+    ConnectionSupervisor |> Supervisor.terminate_child(conn_pid)
     result
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def register(uid, pw), do: Registration.register(uid, pw)
-  def register(conn, uid, pw), do: Registration.register(conn, uid, pw)
+  def register(conn_pid, uid, pw), do: Registration.register(conn_pid, uid, pw)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def update(uid, pw), do: Registration.update(uid, pw)
-  def update(conn, uid, pw), do: Registration.update(conn, uid, pw)
+  def update(conn_pid, uid, pw), do: Registration.update(conn_pid, uid, pw)
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def info(conn), do: conn |> GenServer.call(:info)
-  def info(conn, :full), do: conn |> GenServer.call({:info, :full})
+  def info(conn_pid), do: conn_pid |> GenServer.call(:info)
+  def info(conn_pid, :full), do: conn_pid |> GenServer.call({:info, :full})
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def get(conn, path, body \\ "", headers \\ []) when is_binary(path) and is_binary(body) do
-    conn |> request(%SrpcClient.Request{method: :GET, path: path, body: body, headers: headers})
+  def get(conn_pid, path, body \\ "", headers \\ []) when is_binary(path) and is_binary(body) do
+    conn_pid
+    |> request(%SrpcClient.Request{method: :GET, path: path, body: body, headers: headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def post(conn, path, body, headers \\ []) when is_binary(path) and is_binary(body) do
-    conn |> request(%SrpcClient.Request{method: :POST, path: path, body: body, headers: headers})
+  def post(conn_pid, path, body, headers \\ []) when is_binary(path) and is_binary(body) do
+    conn_pid
+    |> request(%SrpcClient.Request{method: :POST, path: path, body: body, headers: headers})
   end
 
   ## -----------------------------------------------------------------------------------------------
