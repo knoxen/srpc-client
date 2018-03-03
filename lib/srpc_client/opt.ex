@@ -14,12 +14,12 @@ defmodule SrpcClient.Opt do
     value
   end
 
-  def refresh do
-    non_negative(:refresh)
+  def key_refresh do
+    non_negative(:key_refresh)
   end
 
-  def crypt_count do
-    non_negative(:crypt_count)
+  def key_limit do
+    non_negative(:key_limit)
   end
 
   defp non_negative(opt) when is_atom(opt) do
@@ -28,7 +28,7 @@ defmodule SrpcClient.Opt do
     if value < 0, do: fail(opt, "must be non-negative: #{value}")
     value
   end
-  
+
   ## -----------------------------------------------------------------------------------------------
   ##  Private
   ## -----------------------------------------------------------------------------------------------

@@ -3,7 +3,7 @@ defmodule SrpcClient.Connection do
   Documentation for SrpcClient.Connection
   """
   alias :srpc_lib, as: SrpcLib
-  alias SrpcClient.{Action, Msg}
+  alias SrpcClient.{Action, Msg, Opt}
   alias SrpcClient.Conn.Info
   alias SrpcClient.TransportDelegate, as: Transport
 
@@ -35,8 +35,7 @@ defmodule SrpcClient.Connection do
     {:ok,
      conn
      |> Map.put(:created, now)
-     |> accessed(now)
-     |> keyed(now)}
+     |> keyed()}
   end
 
   ## ===============================================================================================
@@ -62,10 +61,12 @@ defmodule SrpcClient.Connection do
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
   def handle_call({:app, request}, _from, conn) do
-    {:reply, conn |> Transport.app(request), conn |> accessed(mono_time())}
+    {:reply, conn |> Transport.app(request), conn |> accessed()}
   end
 
   def handle_call(:refresh, _from, conn), do: refresh(conn)
+
+  def handle_call(:fresh_conn, _from, conn), do: fresh_conn(conn)
 
   def handle_call(:close, _from, conn), do: close(conn)
 
@@ -94,7 +95,7 @@ defmodule SrpcClient.Connection do
           {:ok, conn} ->
             case Msg.decrypt_unwrap(conn, nonce, encrypted_response) do
               {:ok, _data} ->
-                {:reply, :ok, conn |> keyed(mono_time())}
+                {:reply, :ok, conn |> keyed()}
 
               error ->
                 {:reply, error, conn}
@@ -107,6 +108,32 @@ defmodule SrpcClient.Connection do
       error ->
         {:reply, error, conn}
     end
+  end
+
+  ## -----------------------------------------------------------------------------------------------
+  ##  Ensure conn both fresh and of limited use
+  ## -----------------------------------------------------------------------------------------------
+  defp fresh_conn(conn) do
+    fresh_conn =
+      conn
+      |> key_refresh(Opt.key_refresh())
+      |> key_limit(Opt.key_limit())
+
+    {:reply, fresh_conn, fresh_conn}
+  end
+
+  defp key_refresh(conn, 0) do
+    conn
+  end
+
+  defp key_refresh(conn, refresh) do
+  end
+
+  defp key_limit(conn, 0) do
+    conn
+  end
+
+  defp key_limit(conn, key_limit) do
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -136,8 +163,8 @@ defmodule SrpcClient.Connection do
     end
   end
 
-  defp keyed(conn, mono_time), do: conn |> Map.put(:keyed, mono_time)
-  defp accessed(conn, mono_time), do: conn |> Map.put(:accessed, mono_time)
+  defp keyed(conn), do: conn |> Map.put(:keyed, mono_time()) |> accessed()
+  defp accessed(conn), do: conn |> Map.put(:accessed, mono_time())
 
   defp mono_time, do: :erlang.monotonic_time(:second)
 end
