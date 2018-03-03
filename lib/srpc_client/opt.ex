@@ -1,25 +1,34 @@
 defmodule SrpcClient.Opt do
-  
   def srpc_file do
-    value = required(:srpc_file)
-    unless is_string(value), do: fail("SrpcClient srpc_file must be a string: #{inspect(value)}")
-    unless File.exists?(value), do: fail("SrpcClient srpc_file does not exist: #{value}")
+    opt = :srpc_file
+    value = required(opt)
+    unless is_binary(value), do: fail(opt, "must be a string: #{inspect(value)}")
+    unless File.exists?(value), do: fail(opt, "file does not exist: #{value}")
     value
   end
 
   def transport do
-    value = required(:transport)
-    unless is_atom(value), do: fail("SrpcClient transport must be a modulue: #{inspect(value)}")
+    opt = :transport
+    value = required(opt)
+    unless is_atom(value), do: fail(opt, "must be a modulue: #{inspect(value)}")
     value
   end
 
   def refresh do
-    value = param(:refresh) || 0
-    unless is_integer(value), do: fail("SrpcClient refresh must be an integer: #{inspect(value)}")
-    if value < 0, do: fail("SrpcClient refresh value must be non-negative: #{value}")
-    value
-  end    
+    non_negative(:refresh)
+  end
 
+  def crypt_count do
+    non_negative(:crypt_count)
+  end
+
+  defp non_negative(opt) when is_atom(opt) do
+    value = param(opt) || 0
+    unless is_integer(value), do: fail(opt, "must be an integer: #{inspect(value)}")
+    if value < 0, do: fail(opt, "must be non-negative: #{value}")
+    value
+  end
+  
   ## -----------------------------------------------------------------------------------------------
   ##  Private
   ## -----------------------------------------------------------------------------------------------
@@ -38,6 +47,8 @@ defmodule SrpcClient.Opt do
     value
   end
 
-  defp fail(message), do: raise SrpcClient.Error, message: message
-  
+  defp fail(opt, message) when is_atom(opt) and is_binary(message) do
+    name = Atom.to_string(opt)
+    raise(SrpcClient.Error, message: "SrpcClient config #{name} #{message}")
+  end
 end
