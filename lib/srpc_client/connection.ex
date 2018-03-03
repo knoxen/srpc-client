@@ -64,7 +64,7 @@ defmodule SrpcClient.Connection do
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
   def handle_call({:app, request}, _from, conn) do
-    {:reply, conn |> Transport.app(request), conn |> accessed()}
+    {:reply, conn |> Transport.app(request), conn |> used()}
   end
 
   def handle_call(:old?, _from, conn), do: {:reply, old_conn?(conn), conn}
@@ -126,10 +126,7 @@ defmodule SrpcClient.Connection do
   defp tired_conn?(conn), do: tired_conn?(conn, Opt.key_limit())
 
   defp tired_conn?(_conn, 0), do: false
-
-  defp tired_conn?(conn, key_limit) do
-    false
-  end
+  defp tired_conn?(conn, key_limit), do: key_limit <= conn.crypt_count
 
   ## -----------------------------------------------------------------------------------------------
   ##  Close connection
@@ -158,7 +155,18 @@ defmodule SrpcClient.Connection do
     end
   end
 
-  defp keyed(conn), do: conn |> Map.put(:keyed, mono_time()) |> accessed()
+  defp keyed(conn) do
+    conn
+    |> Map.put(:keyed, mono_time())
+    |> accessed()
+  end
+
+  defp used(conn) do
+    conn
+    |> Map.put(:crypt_count, conn.crypt_count + 1)
+    |> accessed()
+  end
+
   defp accessed(conn), do: conn |> Map.put(:accessed, mono_time())
 
   defp mono_time, do: :erlang.monotonic_time(:second)

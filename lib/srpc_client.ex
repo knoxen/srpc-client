@@ -90,7 +90,7 @@ defmodule SrpcClient do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   def request(conn_pid, request) do
-    if GenServer.call(conn_pid, :old?) do
+    if GenServer.call(conn_pid, :old?) or GenServer.call(conn_pid, :tired?) do
       GenServer.call(conn_pid, :refresh)
     end
 

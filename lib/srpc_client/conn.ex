@@ -18,6 +18,7 @@ defmodule SrpcClient.Conn do
   @type created :: integer
   @type accessed :: integer
   @type keyed :: integer
+  @type crypt_count :: integer
   @type time_offset :: integer
 
   @type t :: %__MODULE__{
@@ -38,7 +39,8 @@ defmodule SrpcClient.Conn do
     :resp_mac_key
   ]
   defstruct @enforce_keys ++
-              [sym_alg: :aes256, sha_alg: :sha256] ++ [:created, :accessed, :keyed, :time_offset]
+              [sym_alg: :aes256, sha_alg: :sha256] ++
+              [crypt_count: 0, time_offset: 0] ++ [:created, :accessed, :keyed]
 end
 
 defmodule SrpcClient.Conn.Info do
