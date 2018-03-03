@@ -89,5 +89,9 @@ defmodule SrpcClient do
 
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  def request(conn, request), do: conn |> GenServer.call({:app, request})
+  def request(conn_pid, request) do
+    conn_pid
+    |> GenServer.call(:fresh_conn)
+    |> GenServer.call({:app, request})
+  end
 end

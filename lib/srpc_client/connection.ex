@@ -64,9 +64,9 @@ defmodule SrpcClient.Connection do
     {:reply, conn |> Transport.app(request), conn |> accessed()}
   end
 
-  def handle_call(:refresh, _from, conn), do: refresh(conn)
-
   def handle_call(:fresh_conn, _from, conn), do: fresh_conn(conn)
+
+  def handle_call(:refresh, _from, conn), do: refresh(conn)
 
   def handle_call(:close, _from, conn), do: close(conn)
 
@@ -119,7 +119,7 @@ defmodule SrpcClient.Connection do
       |> key_refresh(Opt.key_refresh())
       |> key_limit(Opt.key_limit())
 
-    {:reply, fresh_conn, fresh_conn}
+    {:reply, self(), fresh_conn}
   end
 
   defp key_refresh(conn, 0) do
@@ -127,6 +127,7 @@ defmodule SrpcClient.Connection do
   end
 
   defp key_refresh(conn, refresh) do
+    conn
   end
 
   defp key_limit(conn, 0) do
@@ -134,6 +135,7 @@ defmodule SrpcClient.Connection do
   end
 
   defp key_limit(conn, key_limit) do
+    conn
   end
 
   ## -----------------------------------------------------------------------------------------------

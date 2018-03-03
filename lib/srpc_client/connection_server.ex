@@ -120,7 +120,6 @@ defmodule SrpcClient.ConnectionServer do
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
   defp connection({:ok, conn_map}) do
-    
     conn = struct(Conn, conn_map)
     {:ok, DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, conn})}
   end
