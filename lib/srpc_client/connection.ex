@@ -57,7 +57,8 @@ defmodule SrpcClient.Connection do
        name: conn.name,
        created: now - conn.created,
        accessed: now - conn.accessed,
-       keyed: now - conn.keyed
+       keyed: now - conn.keyed,
+       count: conn.crypt_count
      }, conn}
   end
 
@@ -158,6 +159,7 @@ defmodule SrpcClient.Connection do
   defp keyed(conn) do
     conn
     |> Map.put(:keyed, mono_time())
+    |> Map.put(:crypt_count, 0)
     |> accessed()
   end
 

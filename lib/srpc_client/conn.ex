@@ -44,6 +44,6 @@ defmodule SrpcClient.Conn do
 end
 
 defmodule SrpcClient.Conn.Info do
-  @enforce_keys [:name, :created, :accessed, :keyed]
+  @enforce_keys [:name, :created, :accessed, :keyed, :count]
   defstruct @enforce_keys
 end
