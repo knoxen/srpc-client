@@ -2,41 +2,45 @@ defmodule SrpcClient.Conn do
   @moduledoc """
   Documentation for SrpcClient.Connection
   """
-  # required
-  @type type :: :lib | :user
-  @type name :: binary
-  @type url :: binary
   @type conn_id :: binary
   @type entity_id :: binary
-  @type req_sym_key :: binary
-  @type req_mac_key :: binary
-  @type resp_sym_key :: binary
-  @type resp_mac_key :: binary
+  @type crypt_count :: integer
+  @type crypt_key :: binary
+  @type mono_time :: integer
+  @type name :: binary
   @type sym_alg :: :aes256
   @type sha_alg :: :sha256
-  # not required
-  @type created :: integer
-  @type accessed :: integer
-  @type keyed :: integer
-  @type crypt_count :: integer
-  @type time_offset :: integer
+  @type type :: :lib | :user
+  @type url :: binary
 
   @type t :: %__MODULE__{
-          type: type,
+          accessed: mono_time,
+          conn_id: conn_id,
+          created: mono_time,
+          crypt_count: crypt_count,
+          entity_id: entity_id,
+          keyed: mono_time,
           name: name,
+          req_sym_key: crypt_key,
+          req_mac_key: crypt_key,
+          resp_sym_key: crypt_key,
+          resp_mac_key: crypt_key,
+          sym_alg: sym_alg,
+          sha_alg: sha_alg,
+          type: type,
           url: url
         }
 
   @enforce_keys [
-    :type,
-    :name,
-    :url,
     :conn_id,
     :entity_id,
     :req_sym_key,
     :req_mac_key,
     :resp_sym_key,
-    :resp_mac_key
+    :resp_mac_key,
+    :name,
+    :type,
+    :url
   ]
   defstruct @enforce_keys ++
               [sym_alg: :aes256, sha_alg: :sha256] ++

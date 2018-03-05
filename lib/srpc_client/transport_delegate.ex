@@ -2,11 +2,11 @@ defmodule SrpcClient.TransportDelegate do
   alias SrpcClient.Opt
 
   def srpc(conn, packet) do
-    Opt.transport().srpc(conn, packet)
+    conn |> Opt.transport().srpc(packet)
   end
 
   def app(conn, packet) do
-    Opt.transport().app(conn, packet)
+    conn |> Opt.transport().app(packet)
   end
 
   ## -----------------------------------------------------------------------------------------------
