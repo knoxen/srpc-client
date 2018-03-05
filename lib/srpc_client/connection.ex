@@ -82,6 +82,19 @@ defmodule SrpcClient.Connection do
   ##
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
+  ##
+  ## -----------------------------------------------------------------------------------------------
+  defp old_conn?(conn), do: old_conn?(conn, Opt.key_refresh())
+
+  defp old_conn?(_conn, 0), do: false
+  defp old_conn?(conn, refresh), do: refresh < mono_time() - conn.keyed
+
+  defp tired_conn?(conn), do: tired_conn?(conn, Opt.key_limit())
+
+  defp tired_conn?(_conn, 0), do: false
+  defp tired_conn?(conn, key_limit), do: key_limit <= conn.crypt_count
+
+  ## -----------------------------------------------------------------------------------------------
   ##  Refresh connection keys
   ## -----------------------------------------------------------------------------------------------
   defp refresh(conn) do
@@ -115,19 +128,6 @@ defmodule SrpcClient.Connection do
         {:reply, error, conn}
     end
   end
-
-  ## -----------------------------------------------------------------------------------------------
-  ##  
-  ## -----------------------------------------------------------------------------------------------
-  defp old_conn?(conn), do: old_conn?(conn, Opt.key_refresh())
-
-  defp old_conn?(_conn, 0), do: false
-  defp old_conn?(conn, refresh), do: refresh < mono_time() - conn.keyed
-
-  defp tired_conn?(conn), do: tired_conn?(conn, Opt.key_limit())
-
-  defp tired_conn?(_conn, 0), do: false
-  defp tired_conn?(conn, key_limit), do: key_limit <= conn.crypt_count
 
   ## -----------------------------------------------------------------------------------------------
   ##  Close connection

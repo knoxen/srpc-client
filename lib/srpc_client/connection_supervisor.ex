@@ -11,8 +11,6 @@ defmodule SrpcClient.ConnectionSupervisor do
 
   def init([]), do: DynamicSupervisor.init(strategy: :one_for_one)
 
-  # def handle_call(:connections, _from, state)
-
   def connections do
     DynamicSupervisor.which_children(__MODULE__)
     |> Enum.map(fn {_, conn, _, _} -> named_conn(conn) end)
