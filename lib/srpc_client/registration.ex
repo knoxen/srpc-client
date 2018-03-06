@@ -21,22 +21,7 @@ defmodule SrpcClient.Registration do
   end
 
   def register(conn_pid, user_id, password, check_stale \\ true) do
-    result =
-      conn_pid
-      |> refresh(check_stale)
-      |> registration_request(@reg_create, user_id, password)
-      |> case do
-        {:ok, {@reg_ok, _data}} ->
-          :ok
-
-        {:ok, {@reg_dup, _data}} ->
-          {:error, "User already registered"}
-
-        error ->
-          error
-      end
-
-    registration_response(result, conn_pid, check_stale)
+    registration_action(conn_pid, @reg_create, user_id, password, check_stale)
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -46,22 +31,7 @@ defmodule SrpcClient.Registration do
   end
 
   def update(conn_pid, user_id, password, check_stale \\ true) do
-    result =
-      conn_pid
-      |> refresh(check_stale)
-      |> registration_request(@reg_update, user_id, password)
-      |> case do
-        {:ok, {@reg_ok, _data}} ->
-          :ok
-
-        {:ok, {@reg_not_found, _data}} ->
-          {:error, "User registeration not found"}
-
-        error ->
-          error
-      end
-
-    registration_response(result, conn_pid, check_stale)
+    registration_action(conn_pid, @reg_update, user_id, password, check_stale)
   end
 
   ## ===============================================================================================
@@ -81,6 +51,28 @@ defmodule SrpcClient.Registration do
       error ->
         error
     end
+  end
+
+  defp registration_action(conn_pid, action, user_id, password, check_stale) do
+    result =
+      conn_pid
+      |> refresh()
+      |> registration_request(action, user_id, password)
+      |> case do
+        {:ok, {@reg_ok, _data}} ->
+          :ok
+
+        {:ok, {@reg_dup, _data}} ->
+          {:error, "User already registered"}
+
+        {:ok, {@reg_not_found, _data}} ->
+          {:error, "User registeration not found"}
+             
+        error ->
+          error
+      end
+
+    registration_response(result, conn_pid, check_stale)
   end
 
   defp registration_request(conn_pid, reg_code, user_id, password) do
@@ -122,13 +114,10 @@ defmodule SrpcClient.Registration do
     <<msg::binary, " invalid: Stale connection">>
   end
 
-  defp refresh(conn_pid, false), do: conn_pid
-
-  defp refresh(conn_pid, true) do
+  defp refresh(conn_pid) do
     if GenServer.call(conn_pid, :old?) or GenServer.call(conn_pid, :tired?) do
       GenServer.call(conn_pid, :refresh)
     end
-
     conn_pid
   end
 
