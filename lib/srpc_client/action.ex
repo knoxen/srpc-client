@@ -45,23 +45,11 @@ defmodule SrpcClient.Action do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp action(conn, action, data, encrypt \\ false) do
+  defp action(conn, action, data) do
+    id_size = :erlang.byte_size(conn.conn_id)
+    packet = <<Msg.action(), id_size::8, conn.conn_id::binary, action, data::binary>>
+
     conn
-    |> encrypt(data, encrypt)
-    |> package(action, conn.conn_id)
-    |> post(conn)
+    |> Transport.srpc(packet)
   end
-
-  defp encrypt(conn, data, true), do: SrpcLib.encrypt(:origin_requester, conn, data)
-  defp encrypt(_conn, data, false), do: {:ok, data}
-
-  defp package({:ok, data}, action, conn_id) do
-    id_size = :erlang.byte_size(conn_id)
-    {:ok, <<Msg.action(), id_size::8, conn_id::binary, action, data::binary>>}
-  end
-
-  defp package(error, _action, _conn), do: error
-
-  defp post({:ok, packet}, conn), do: Transport.srpc(conn, packet)
-  defp post(error, _conn), do: error
 end
