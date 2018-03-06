@@ -110,7 +110,7 @@ defmodule SrpcClient.Connection do
         |> Transport.app(request)
         |> case do
           {:invalid, 403} ->
-            case reconnect(conn.type) do
+            case reconnect(conn) do
               {:ok, new_conn_pid} ->
                 self() |> GenServer.cast(:terminate)
                 result = new_conn_pid |> SrpcClient.info(:full) |> Transport.app(request)
@@ -126,13 +126,14 @@ defmodule SrpcClient.Connection do
     end
   end
 
-  defp reconnect(:lib) do
-    SrpcClient.connect()
+  defp reconnect(conn) do
+    case conn.type do
+      :lib ->
+        SrpcClient.connect()
+      :user ->
+        SrpcClient.connect(conn.entity_id, conn.reconnect_pw)
+    end        
   end
-
-  # defp reconnect(:user, conn) do
-
-  # end
 
   ## -----------------------------------------------------------------------------------------------
   ##  Refresh connection keys

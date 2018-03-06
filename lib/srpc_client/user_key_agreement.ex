@@ -1,7 +1,6 @@
 defmodule SrpcClient.UserKeyAgreement do
   alias :srpc_lib, as: SrpcLib
-  alias SrpcClient.Msg, as: SrpcMsg
-  alias SrpcClient.Action, as: SrpcAction
+  alias SrpcClient.{Action, Msg, Opt}
 
   ## CxTBD Optional data processing
 
@@ -24,19 +23,19 @@ defmodule SrpcClient.UserKeyAgreement do
   def connect(conn, user_id, password) do
     conn
     |> exchange(user_id, password)
-    |> confirm
+    |> confirm(password)
   end
 
   ## -----------------------------------------------------------------------------------------------
   ##   User key exchange
   ## -----------------------------------------------------------------------------------------------
   defp exchange(conn, user_id, password) do
-    {nonce, client_data} = SrpcMsg.wrap(conn)
+    {nonce, client_data} = Msg.wrap(conn)
 
     {client_keys, request} =
       SrpcLib.create_user_key_exchange_request(conn, user_id, client_data)
 
-    case SrpcAction.lib_user_exchange(conn, request) do
+    case Action.lib_user_exchange(conn, request) do
       {:ok, encrypted_response} ->
         case SrpcLib.process_user_key_exchange_response(
                conn,
@@ -46,7 +45,7 @@ defmodule SrpcClient.UserKeyAgreement do
                encrypted_response
              ) do
           {:ok, user_conn, @valid_user_id, exchange_data} ->
-            case SrpcMsg.unwrap(nonce, exchange_data) do
+            case Msg.unwrap(nonce, exchange_data) do
               {:ok, _data} ->
                 {:ok,
                  conn
@@ -60,7 +59,7 @@ defmodule SrpcClient.UserKeyAgreement do
           {:ok, user_conn, @invalid_user_id, _data} ->
             confirm_request = SrpcLib.create_user_key_confirm_request(user_conn)
 
-            case SrpcAction.lib_user_confirm(conn, confirm_request) do
+            case Action.lib_user_confirm(conn, confirm_request) do
               {:ok, _encrypted_response} ->
                 {:invalid, "Invalid user"}
 
@@ -80,17 +79,21 @@ defmodule SrpcClient.UserKeyAgreement do
   ## -----------------------------------------------------------------------------------------------
   ##   User key confirm
   ## -----------------------------------------------------------------------------------------------
-  defp confirm({:ok, conn}) do
-    {nonce, client_data} = SrpcMsg.wrap(conn)
+  defp confirm({:ok, conn}, password) do
+    {nonce, client_data} = Msg.wrap(conn)
     confirm_request = SrpcLib.create_user_key_confirm_request(conn, client_data)
 
-    case SrpcAction.lib_user_confirm(conn, confirm_request) do
+    case Action.lib_user_confirm(conn, confirm_request) do
       {:ok, encrypted_response} ->
         case SrpcLib.process_user_key_confirm_response(conn, encrypted_response) do
           {:ok, conn, confirm_data} ->
-            case SrpcMsg.unwrap(nonce, confirm_data) do
+            case Msg.unwrap(nonce, confirm_data) do
               {:ok, _data} ->
-                {:ok, conn}
+                if Opt.reconnect do
+                  {:ok, conn |> Map.put(:reconnect_pw, password)}
+                else
+                  {:ok, conn}
+                end
 
               error ->
                 error
@@ -105,5 +108,5 @@ defmodule SrpcClient.UserKeyAgreement do
     end
   end
 
-  defp confirm(error), do: error
+  defp confirm(error, _), do: error
 end
