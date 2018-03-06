@@ -23,6 +23,7 @@ defmodule SrpcClient.Registration do
   def register(conn_pid, user_id, password, check_stale \\ true) do
     result =
       conn_pid
+      |> refresh(check_stale)
       |> registration_request(@reg_create, user_id, password)
       |> case do
         {:ok, {@reg_ok, _data}} ->
@@ -47,6 +48,7 @@ defmodule SrpcClient.Registration do
   def update(conn_pid, user_id, password, check_stale \\ true) do
     result =
       conn_pid
+      |> refresh(check_stale)
       |> registration_request(@reg_update, user_id, password)
       |> case do
         {:ok, {@reg_ok, _data}} ->
@@ -120,7 +122,17 @@ defmodule SrpcClient.Registration do
     <<msg::binary, " invalid: Stale connection">>
   end
 
-  defp registration_response(result, conn_pid, false) do
+  defp refresh(conn_pid, false), do: conn_pid
+
+  defp refresh(conn_pid, true) do
+    if GenServer.call(conn_pid, :old?) or GenServer.call(conn_pid, :tired?) do
+      GenServer.call(conn_pid, :refresh)
+    end
+
+    conn_pid
+  end
+
+  defp registration_response(result, _conn_pid, false) do
     result
   end
 
