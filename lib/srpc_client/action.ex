@@ -22,21 +22,21 @@ defmodule SrpcClient.Action do
     Transport.srpc(conn, <<Msg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn, {:ok, packet}), do: action(conn, @lib_confirm, packet)
+  def lib_confirm(conn, {:ok, packet}), do: conn |> action(@lib_confirm, packet)
   def lib_confirm(_conn, error), do: error
 
-  def lib_user_exchange(conn, {:ok, packet}), do: action(conn, @lib_user_exchange, packet)
+  def lib_user_exchange(conn, {:ok, packet}), do: conn |> action(@lib_user_exchange, packet)
 
   def lib_user_exchange(_conn, error), do: error
 
-  def lib_user_confirm(conn, {:ok, packet}), do: action(conn, @lib_user_confirm, packet)
+  def lib_user_confirm(conn, {:ok, packet}), do: conn |> action(@lib_user_confirm, packet)
   def lib_user_confirm(_conn, error), do: error
 
-  def register(conn, packet), do: action(conn, @registration, packet)
+  def register(conn, packet), do: conn |> action(@registration, packet)
 
-  def refresh(conn, packet), do: action(conn, @refresh, packet)
+  def refresh(conn, packet), do: conn |> action(@refresh, packet)
 
-  def close(conn, packet), do: action(conn, @close, packet)
+  def close(conn, packet), do: conn |> action(@close, packet)
 
   ## ===============================================================================================
   ##

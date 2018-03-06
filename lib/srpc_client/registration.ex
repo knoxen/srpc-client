@@ -86,23 +86,28 @@ defmodule SrpcClient.Registration do
                     {:ok, {return_code, data}}
 
                   error ->
-                    error_msg(error, "Registration unwrap")
+                    reason(error, "Registration unwrap")
                 end
 
               error ->
-                error_msg(error, "Process registration response")
+                reason(error, "Process registration response")
             end
 
           error ->
-            error_msg(error, "Registration action")
+            reason(error, "Registration action")
         end
 
       error ->
-        error_msg(error, "Create registration request")
+        reason(error, "Create registration request")
     end
   end
 
-  defp error_msg({:error, reason}, msg) do
+  defp reason({:error, reason}, msg) do
     <<msg::binary, " error: ", reason::binary>>
   end
+
+  defp reason({:invalid, 403}, msg) do
+    <<msg::binary, " invalid: Stale connection">>
+  end
+  
 end
