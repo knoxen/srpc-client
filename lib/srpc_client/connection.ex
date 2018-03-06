@@ -114,7 +114,7 @@ defmodule SrpcClient.Connection do
               {:ok, new_conn_pid} ->
                 self() |> GenServer.cast(:terminate)
                 result = new_conn_pid |> SrpcClient.info(:full) |> Transport.app(request)
-                {:reply, {result, new_conn_pid}, conn}
+                {:reply, {result, new_conn_pid}, conn |> used()}
 
               not_ok ->
                 {:reply, not_ok, nil}
@@ -130,9 +130,10 @@ defmodule SrpcClient.Connection do
     case conn.type do
       :lib ->
         SrpcClient.connect()
+
       :user ->
         SrpcClient.connect(conn.entity_id, conn.reconnect_pw)
-    end        
+    end
   end
 
   ## -----------------------------------------------------------------------------------------------

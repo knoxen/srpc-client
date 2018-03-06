@@ -32,8 +32,7 @@ defmodule SrpcClient.UserKeyAgreement do
   defp exchange(conn, user_id, password) do
     {nonce, client_data} = Msg.wrap(conn)
 
-    {client_keys, request} =
-      SrpcLib.create_user_key_exchange_request(conn, user_id, client_data)
+    {client_keys, request} = SrpcLib.create_user_key_exchange_request(conn, user_id, client_data)
 
     case Action.lib_user_exchange(conn, request) do
       {:ok, encrypted_response} ->
@@ -89,7 +88,7 @@ defmodule SrpcClient.UserKeyAgreement do
           {:ok, conn, confirm_data} ->
             case Msg.unwrap(nonce, confirm_data) do
               {:ok, _data} ->
-                if Opt.reconnect do
+                if Opt.reconnect() do
                   {:ok, conn |> Map.put(:reconnect_pw, password)}
                 else
                   {:ok, conn}
