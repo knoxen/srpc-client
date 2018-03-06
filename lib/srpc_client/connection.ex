@@ -3,7 +3,7 @@ defmodule SrpcClient.Connection do
   Documentation for SrpcClient.Connection
   """
   alias :srpc_lib, as: SrpcLib
-  alias SrpcClient.{Action, Msg, Opt}
+  alias SrpcClient.{Action, ConnectionSupervisor, Msg, Opt}
   alias SrpcClient.Conn.Info
   alias SrpcClient.TransportDelegate, as: Transport
 
@@ -35,7 +35,8 @@ defmodule SrpcClient.Connection do
     {:ok,
      conn
      |> Map.put(:created, now)
-     |> keyed()}
+     |> keyed()
+     |> Map.put(:pid, self())}
   end
 
   def old?, do: GenServer.call(__MODULE__, :old?)
@@ -47,7 +48,7 @@ defmodule SrpcClient.Connection do
   ##
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
-  ##  
+  ##
   ## -----------------------------------------------------------------------------------------------
   def handle_call(:info, _from, conn) do
     now = mono_time()
@@ -64,9 +65,7 @@ defmodule SrpcClient.Connection do
 
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
-  def handle_call({:app, request}, _from, conn) do
-    {:reply, conn |> Transport.app(request), conn |> used()}
-  end
+  def handle_call({:app, request}, _from, conn), do: conn |> app(request)
 
   def handle_call(:old?, _from, conn), do: {:reply, old_conn?(conn), conn}
 
@@ -75,6 +74,10 @@ defmodule SrpcClient.Connection do
   def handle_call(:refresh, _from, conn), do: refresh(conn)
 
   def handle_call(:close, _from, conn), do: close(conn)
+
+  def handle_cast(:terminate, conn) do
+    ConnectionSupervisor |> Supervisor.terminate_child(conn.pid)
+  end
 
   ## ===============================================================================================
   ##
@@ -93,6 +96,43 @@ defmodule SrpcClient.Connection do
 
   defp tired_conn?(_conn, 0), do: false
   defp tired_conn?(conn, key_limit), do: key_limit <= conn.crypt_count
+
+  ## -----------------------------------------------------------------------------------------------
+  ##
+  ## -----------------------------------------------------------------------------------------------
+  defp app(conn, request) do
+    case Opt.reconnect() do
+      false ->
+        {:reply, {conn |> Transport.app(request), conn.pid}, conn |> used()}
+
+      true ->
+        conn
+        |> Transport.app(request)
+        |> case do
+          {:invalid, 403} ->
+            case reconnect(conn.type) do
+              {:ok, new_conn_pid} ->
+                self() |> GenServer.cast(:terminate)
+                result = new_conn_pid |> SrpcClient.info(:full) |> Transport.app(request)
+                {:reply, {result, new_conn_pid}, conn}
+
+              not_ok ->
+                {:reply, not_ok, nil}
+            end
+
+          result ->
+            {:reply, {result, conn.pid}, conn |> used()}
+        end
+    end
+  end
+
+  defp reconnect(:lib) do
+    SrpcClient.connect()
+  end
+
+  # defp reconnect(:user, conn) do
+
+  # end
 
   ## -----------------------------------------------------------------------------------------------
   ##  Refresh connection keys

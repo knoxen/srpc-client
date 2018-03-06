@@ -44,7 +44,7 @@ defmodule SrpcClient.Conn do
   ]
   defstruct @enforce_keys ++
               [sym_alg: :aes256, sha_alg: :sha256] ++
-              [crypt_count: 0, time_offset: 0] ++ [:created, :accessed, :keyed]
+              [crypt_count: 0, time_offset: 0] ++ [:accessed, :created, :keyed, :pid]
 end
 
 defmodule SrpcClient.Conn.Info do

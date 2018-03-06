@@ -14,6 +14,10 @@ defmodule SrpcClient.Opt do
     value
   end
 
+  def reconnect do
+    param(:reconnect) || false
+  end
+
   def key_refresh do
     non_negative(:key_refresh)
   end
