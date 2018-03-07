@@ -20,8 +20,8 @@ defmodule SrpcClient.Registration do
     lib_exec(&register/4, user_id, password)
   end
 
-  def register(conn_pid, user_id, password, check_stale \\ true) do
-    registration_action(conn_pid, @reg_create, user_id, password, check_stale)
+  def register(conn_pid, user_id, password, reconnect? \\ true) do
+    registration_action(conn_pid, @reg_create, user_id, password, reconnect?)
   end
 
   ## -----------------------------------------------------------------------------------------------
@@ -30,8 +30,8 @@ defmodule SrpcClient.Registration do
     lib_exec(&update/4, user_id, password)
   end
 
-  def update(conn_pid, user_id, password, check_stale \\ true) do
-    registration_action(conn_pid, @reg_update, user_id, password, check_stale)
+  def update(conn_pid, user_id, password, reconnect? \\ true) do
+    registration_action(conn_pid, @reg_update, user_id, password, reconnect?)
   end
 
   ## ===============================================================================================
@@ -53,79 +53,112 @@ defmodule SrpcClient.Registration do
     end
   end
 
-  defp registration_action(conn_pid, action, user_id, password, check_stale) do
+  defp registration_action(conn_pid, action, user_id, password, reconnect?) do
     result =
       conn_pid
       |> refresh()
-      |> registration_request(action, user_id, password)
+      |> registration_request(action, user_id, password, reconnect?)
       |> case do
-        {:ok, {@reg_ok, _data}} ->
-          :ok
+        {:ok, {@reg_ok, _data}, pid} ->
+          {:ok, pid}
 
-        {:ok, {@reg_dup, _data}} ->
-          {:error, "User already registered"}
+        {:ok, {@reg_dup, _data}, pid} ->
+          {{:error, "User already registered"}, pid}
 
-        {:ok, {@reg_not_found, _data}} ->
-          {:error, "User registeration not found"}
-             
+        {:ok, {@reg_not_found, _data}, pid} ->
+          {{:error, "User registeration not found"}, pid}
+
         error ->
           error
       end
 
-    registration_response(result, conn_pid, check_stale)
+    registration_response(result, reconnect?)
   end
 
-  defp registration_request(conn_pid, reg_code, user_id, password) do
+  require Logger
+  
+  defp registration_request(conn_pid, reg_code, user_id, password, reconnect?, retry? \\ true) do
     conn = conn_pid |> SrpcClient.info(:full)
+
+    case create_registration_request(conn, reg_code, user_id, password) do
+      {:ok, nonce, encrypted_request} ->
+        case register_action(conn, encrypted_request, reconnect?) do
+          {{:ok, encrypted_response}, ^conn_pid} ->
+            process_registration_response(conn, nonce, encrypted_response)
+
+          {:noop, new_conn_pid} ->
+            if retry? do
+              registration_request(new_conn_pid, reg_code, user_id, password, reconnect?, false)
+            else
+              {{:error, "Registration with stale connection"}, conn_pid}
+            end
+
+          error ->
+            error
+        end
+
+      error ->
+        error
+    end
+  end
+
+  defp register_action(conn, encrypted_request, false) do
+    {conn |> SrpcAction.register(encrypted_request, false), conn.pid}
+  end
+
+  defp register_action(conn, encrypted_request, true) do
+    conn |> SrpcAction.register(encrypted_request, true)
+  end
+
+  defp create_registration_request(conn, reg_code, user_id, password) do
     {nonce, client_data} = SrpcMsg.wrap(conn)
 
     case SrpcLib.create_registration_request(conn, reg_code, user_id, password, client_data) do
       {:ok, encrypted_request} ->
-        case SrpcAction.register(conn, encrypted_request) do
-          {:ok, encrypted_response} ->
-            case SrpcLib.process_registration_response(conn, encrypted_response) do
-              {:ok, {return_code, registration_response}} ->
-                case SrpcMsg.unwrap(nonce, registration_response) do
-                  {:ok, data} ->
-                    {:ok, {return_code, data}}
+        {:ok, nonce, encrypted_request}
 
-                  error ->
-                    reason(error, "Registration unwrap")
-                end
+      error ->
+        {reason(error, "Create registration request"), conn.conn_pid}
+    end
+  end
 
-              error ->
-                reason(error, "Process registration response")
-            end
+  defp process_registration_response(conn, nonce, encrypted_response) do
+    case SrpcLib.process_registration_response(conn, encrypted_response) do
+      {:ok, {return_code, registration_response}} ->
+        case SrpcMsg.unwrap(nonce, registration_response) do
+          {:ok, data} ->
+            {:ok, {return_code, data}, conn.pid}
 
           error ->
-            reason(error, "Registration action")
+            {reason(error, "Registration unwrap"), conn.pid}
         end
 
       error ->
-        reason(error, "Create registration request")
+        {reason(error, "Process registration response"), conn.pid}
     end
   end
 
   defp reason({:error, reason}, msg) do
-    <<msg::binary, " error: ", reason::binary>>
+    {:error, msg <> " error: " <> reason}
   end
 
   defp reason({:invalid, 403}, msg) do
-    <<msg::binary, " invalid: Stale connection">>
+    {:error, msg <> " invalid: Stale connection"}
   end
 
   defp refresh(conn_pid) do
     if GenServer.call(conn_pid, :old?) or GenServer.call(conn_pid, :tired?) do
       GenServer.call(conn_pid, :refresh)
     end
+
     conn_pid
   end
 
-  defp registration_response(result, _conn_pid, false) do
+  defp registration_response({result, _pid}, false) do
     result
   end
 
-  defp registration_response(result, conn_pid, true) do
-    {result, conn_pid}
+  defp registration_response(result, true) do
+    result
   end
 end

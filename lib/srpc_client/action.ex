@@ -1,6 +1,4 @@
 defmodule SrpcClient.Action do
-  alias :srpc_lib, as: SrpcLib
-
   require SrpcClient.Msg
   alias SrpcClient.Msg
 
@@ -22,21 +20,22 @@ defmodule SrpcClient.Action do
     Transport.srpc(conn, <<Msg.lib_exchange(), data::binary>>)
   end
 
-  def lib_confirm(conn, {:ok, packet}), do: conn |> action(@lib_confirm, packet)
+  def lib_confirm(conn, {:ok, data}), do: conn |> action(@lib_confirm, data)
   def lib_confirm(_conn, error), do: error
 
-  def lib_user_exchange(conn, {:ok, packet}), do: conn |> action(@lib_user_exchange, packet)
+  def lib_user_exchange(conn, {:ok, data}), do: conn |> action(@lib_user_exchange, data)
 
   def lib_user_exchange(_conn, error), do: error
 
-  def lib_user_confirm(conn, {:ok, packet}), do: conn |> action(@lib_user_confirm, packet)
+  def lib_user_confirm(conn, {:ok, data}), do: conn |> action(@lib_user_confirm, data)
   def lib_user_confirm(_conn, error), do: error
 
-  def register(conn, packet), do: conn |> action(@registration, packet)
+  def register(conn, data, reconnect? \\ false),
+    do: conn |> action(@registration, data, reconnect?)
 
-  def refresh(conn, packet), do: conn |> action(@refresh, packet)
+  def refresh(conn, data), do: conn |> action(@refresh, data)
 
-  def close(conn, packet), do: conn |> action(@close, packet)
+  def close(conn, data), do: conn |> action(@close, data)
 
   ## ===============================================================================================
   ##
@@ -45,11 +44,16 @@ defmodule SrpcClient.Action do
   ## ===============================================================================================
   ## -----------------------------------------------------------------------------------------------
   ## -----------------------------------------------------------------------------------------------
-  defp action(conn, action, data) do
+  defp action(conn, action, data, reconnect? \\ false) do
     id_size = :erlang.byte_size(conn.conn_id)
     packet = <<Msg.action(), id_size::8, conn.conn_id::binary, action, data::binary>>
 
-    conn
-    |> Transport.srpc(packet)
+    if reconnect? do
+      conn.pid
+      |> GenServer.call({:srpc, packet})
+    else
+      conn
+      |> Transport.srpc(packet)
+    end
   end
 end

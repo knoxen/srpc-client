@@ -65,6 +65,8 @@ defmodule SrpcClient.Connection do
 
   def handle_call({:info, :full}, _from, conn), do: {:reply, conn, conn}
 
+  def handle_call({:srpc, packet}, _from, conn), do: conn |> srpc(packet)
+
   def handle_call({:app, request}, _from, conn), do: conn |> app(request)
 
   def handle_call(:old?, _from, conn), do: {:reply, old_conn?(conn), conn}
@@ -100,22 +102,35 @@ defmodule SrpcClient.Connection do
   ## -----------------------------------------------------------------------------------------------
   ##
   ## -----------------------------------------------------------------------------------------------
+  defp srpc(conn, packet) do
+    conn |> transport(&Transport.srpc/2, packet, false)
+  end
+
   defp app(conn, request) do
+    conn |> transport(&Transport.app/2, request, true)
+  end
+
+  require Logger
+
+  defp transport(conn, transport_fun, data, retry?) do
     case Opt.reconnect() do
       false ->
-        {:reply, {conn |> Transport.app(request), conn.pid}, conn |> used()}
+        {:reply, {conn |> transport_fun.(data), conn.pid}, conn |> used()}
 
       true ->
         conn
-        |> Transport.app(request)
+        |> transport_fun.(data)
         |> case do
           {:invalid, 403} ->
             case reconnect(conn) do
               {:ok, new_conn_pid} ->
                 self() |> GenServer.cast(:terminate)
-                result = new_conn_pid |> SrpcClient.info(:full) |> Transport.app(request)
-                {:reply, {result, new_conn_pid}, conn |> used()}
-
+                if retry? do
+                  result = new_conn_pid |> SrpcClient.info(:full) |> transport_fun.(data)
+                  {:reply, {result, new_conn_pid}, conn |> used()}
+                else
+                  {:reply, {:noop, new_conn_pid}, conn}
+                end
               not_ok ->
                 {:reply, not_ok, nil}
             end
