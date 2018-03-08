@@ -89,7 +89,7 @@ defmodule SrpcClient.UserKeyAgreement do
             case Msg.unwrap(nonce, confirm_data) do
               {:ok, _data} ->
                 if Opt.reconnect() do
-                  {:ok, conn |> Map.put(:reconnect_pw, password)}
+                  {:ok, conn |> Map.put(:reconnect, password)}
                 else
                   {:ok, conn}
                 end

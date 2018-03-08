@@ -147,7 +147,7 @@ defmodule SrpcClient.Connection do
         SrpcClient.connect()
 
       :user ->
-        SrpcClient.connect(conn.entity_id, conn.reconnect_pw)
+        SrpcClient.connect(conn.entity_id, conn.reconnect)
     end
   end
 

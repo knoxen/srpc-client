@@ -22,7 +22,7 @@ defmodule SrpcClient.Conn do
           keyed: mono_time,
           name: name,
           pid: pid,
-          reconnect_pw: binary | nil,
+          reconnect: binary | nil,
           req_sym_key: crypt_key,
           req_mac_key: crypt_key,
           resp_sym_key: crypt_key,
@@ -46,8 +46,7 @@ defmodule SrpcClient.Conn do
   ]
   defstruct @enforce_keys ++
               [sym_alg: :aes256, sha_alg: :sha256] ++
-              [crypt_count: 0, time_offset: 0] ++
-              [:accessed, :created, :keyed, :pid, :reconnect_pw]
+              [crypt_count: 0, time_offset: 0] ++ [:accessed, :created, :keyed, :pid, :reconnect]
 end
 
 defmodule SrpcClient.Conn.Info do
