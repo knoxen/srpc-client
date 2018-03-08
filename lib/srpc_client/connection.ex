@@ -115,7 +115,21 @@ defmodule SrpcClient.Connection do
   defp transport(conn, transport_fun, data, retry?) do
     case Opt.reconnect() do
       false ->
-        {:reply, {conn |> transport_fun.(data), conn.pid}, conn |> used()}
+        result =
+          conn
+          |> transport_fun.(data)
+          |> case do
+            {:invalid, 403} ->
+              {:invalid, "Stale connection"}
+
+            {:invalid, 451} ->
+              {:invalid, "Srpc Demo Expired. Restart server to continue."}
+
+            result ->
+              result
+          end
+
+        {:reply, {result, conn.pid}, conn |> used()}
 
       true ->
         conn
@@ -125,12 +139,14 @@ defmodule SrpcClient.Connection do
             case reconnect(conn) do
               {:ok, new_conn_pid} ->
                 self() |> GenServer.cast(:terminate)
+
                 if retry? do
                   result = new_conn_pid |> SrpcClient.info(:full) |> transport_fun.(data)
                   {:reply, {result, new_conn_pid}, conn |> used()}
                 else
                   {:reply, {:noop, new_conn_pid}, conn}
                 end
+
               not_ok ->
                 {:reply, not_ok, nil}
             end

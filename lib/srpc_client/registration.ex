@@ -76,7 +76,7 @@ defmodule SrpcClient.Registration do
   end
 
   require Logger
-  
+
   defp registration_request(conn_pid, reg_code, user_id, password, reconnect?, retry? \\ true) do
     conn = conn_pid |> SrpcClient.info(:full)
 
